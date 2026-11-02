@@ -1,4 +1,4 @@
-Import 'package:sqflite/sqflite.dart';
+import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
 class DatabaseHelper {
@@ -98,5 +98,20 @@ class DatabaseHelper {
         FOREIGN KEY (student_id) REFERENCES Users (user_id)
       )
     ''');
+  }
+
+  // User Login စစ်ဆေးရန် function
+  Future?> loginUser(String username, String password) async {
+    final db = await database;
+    final result = await db.query(
+      'Users',
+      where: 'username = ? AND password = ?',
+      whereArgs: [username, password],
+    );
+
+    if (result.isNotEmpty) {
+      return result.first; // အကောင့်ရှိလျှင် အချက်အလက်များကို Return ပေးမည်
+    }
+    return null; // အကောင့်မမှန်ပါက null ပေးမည်
   }
 }
