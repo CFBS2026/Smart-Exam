@@ -115,3 +115,27 @@ class DatabaseHelper {
     return null; // အကောင့်မမှန်ပါက null ပေးမည်
   }
 }
+  // User အသစ်ထည့်သွင်းရန် function (ကျောင်းအုပ်က ဆရာ/မ ထည့်ရန် နှင့် ဆရာ/မက ကျောင်းသား ထည့်ရန်)
+  Future<int> insertUser({
+    required String userId,
+    required String username,
+    required String password,
+    required String fullName,
+    required String role, // 'principal', 'teacher', 'student'
+    String? grade,
+    String? stream,
+  }) async {
+    final db = await database;
+
+    Map<String, dynamic> row = {
+      'user_id': userId,
+      'username': username,
+      'password': password,
+      'full_name': fullName,
+      'role': role,
+      'grade': grade,
+      'stream': stream,
+    };
+
+    return await db.insert('Users', row, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
