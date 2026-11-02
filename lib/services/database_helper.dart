@@ -139,3 +139,67 @@ class DatabaseHelper {
 
     return await db.insert('Users', row, conflictAlgorithm: ConflictAlgorithm.replace);
   }
+  // ၁။ မေးခွန်းအသစ်ထည့်သွင်းရန် function (Questions Table)
+  Future<int> insertQuestion({
+    required String questionId,
+    required String subjectId,
+    required String grade,
+    required String chapter,
+    required String questionText,
+    required String optionA,
+    required String optionB,
+    required String optionC,
+    required String optionD,
+    required String correctOption, // 'A', 'B', 'C', 'D'
+    required int marks, // 1, 3, သို့မဟုတ် 5
+  }) async {
+    final db = await database;
+
+    Map<String, dynamic> row = {
+      'question_id': questionId,
+      'subject_id': subjectId,
+      'grade': grade,
+      'chapter': chapter,
+      'question_text': questionText,
+      'option_a': optionA,
+      'option_b': optionB,
+      'option_c': optionC,
+      'option_d': optionD,
+      'correct_option': correctOption,
+      'marks': marks,
+    };
+
+    return await db.insert('Questions', row, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  // ၂။ စာမေးပွဲနှင့် Test Blueprint အသစ်ဖန်တီးရန် function (Exams Table)
+  Future<int> insertExam({
+    required String examId,
+    required String title,
+    required String subjectId,
+    required String grade,
+    required int count1Mark,
+    required int count3Mark,
+    required int count5Mark,
+    required int totalMarks,
+    required int durationMinutes,
+    required String createdBy,
+  }) async {
+    final db = await database;
+
+    Map<String, dynamic> row = {
+      'exam_id': examId,
+      'title': title,
+      'subject_id': subjectId,
+      'grade': grade,
+      'count_1_mark': count1Mark,
+      'count_3_mark': count3Mark,
+      'count_5_mark': count5Mark,
+      'total_marks': totalMarks,
+      'duration_minutes': durationMinutes,
+      'created_by': createdBy,
+    };
+
+    return await db.insert('Exams', row, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
