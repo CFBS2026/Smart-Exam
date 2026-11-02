@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CFBS Smart Exam System</title>
+    <title>CHINDWIN FUTURE BRIGHT SCHOOL - Smart Exam System</title>
     <style>
         :root {
             --bg-color: #0A192F;
             --card-bg: #112240;
+            --card-sub: #1D3557;
             --accent-color: #FFD700;
             --text-color: #FFFFFF;
             --text-muted: #8892B0;
@@ -28,14 +29,21 @@
             box-shadow: 0 8px 24px rgba(0,0,0,0.4);
             border: 1px solid rgba(255, 215, 0, 0.3);
         }
-        h2, h3 {
+        h2, h3, h4 {
             color: var(--accent-color);
             text-align: center;
+            margin-top: 5px;
+        }
+        .subtitle {
+            text-align: center;
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 20px;
         }
         input, select, textarea {
             width: 100%;
-            padding: 10px;
-            margin: 6px 0 12px 0;
+            padding: 12px;
+            margin: 6px 0 14px 0;
             background-color: #0A192F;
             border: 1px solid var(--accent-color);
             border-radius: 8px;
@@ -56,6 +64,44 @@
         }
         button:hover { opacity: 0.9; }
         .hidden { display: none; }
+        
+        /* Dashboard Grid Styling */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+        .menu-card {
+            background: var(--card-sub);
+            padding: 16px 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,215,0,0.2);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .menu-card:hover {
+            border-color: var(--accent-color);
+            transform: translateY(-2px);
+        }
+        .menu-card h4 {
+            margin: 0 0 4px 0;
+            color: #FFFFFF;
+            font-size: 15px;
+        }
+        .menu-card p {
+            margin: 0;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        .section-title {
+            color: var(--accent-color);
+            font-size: 16px;
+            border-bottom: 1px solid rgba(255,215,0,0.2);
+            padding-bottom: 5px;
+            margin: 20px 0 12px 0;
+        }
         .receipt {
             background: #fff;
             color: #000;
@@ -65,50 +111,44 @@
             white-space: pre-wrap;
             margin-top: 15px;
         }
-        .card {
-            background: rgba(255,255,255,0.05);
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 10px;
-        }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h2>CHINDWIN FUTURE BRIGHT SCHOOL</h2>
-    <h3>Smart Exam System</h3>
+    <div class="subtitle" id="portalSub">SMART EXAMINATION SYSTEM</div>
 
-    <!-- 1. Login Section -->
+    <!-- 1. Login Screen -->
     <div id="loginSection">
         <h3>အကောင့်ဝင်ရန် (Login)</h3>
         <label>Username</label>
         <input type="text" id="loginUser" placeholder="principal / teacher / student">
+        
         <label>Password</label>
-        <input type="password" id="loginPass" placeholder="password">
+        <input type="password" id="loginPass" placeholder="123">
+        
         <button onclick="handleLogin()">ဝင်မည် (Login)</button>
-        <p id="loginMsg" style="color: #ff6b6b; text-align: center;"></p>
+        <p id="loginMsg" style="color: #ff6b6b; text-align: center; margin-top: 10px;"></p>
     </div>
 
-    <!-- 2. Dashboard Section -->
+    <!-- 2. Dashboard Screen -->
     <div id="dashboardSection" class="hidden">
-        <h3 id="welcomeText"></h3>
+        <h3 id="welcomeText" style="color: #69F0AE; font-size: 18px;"></h3>
         <div id="roleContent"></div>
         <button onclick="logout()" style="background-color: #ff6b6b; color: #fff; margin-top: 25px;">ထွက်ရန် (Logout)</button>
     </div>
 </div>
 
 <script>
-    // LocalStorage Database Initialization
+    // System Users Database Setup
     if (!localStorage.getItem('users')) {
         localStorage.setItem('users', JSON.stringify([
-            {user: 'principal', pass: '123', role: 'principal', name: 'ကျောင်းအုပ်ကြီး'},
-            {user: 'teacher', pass: '123', role: 'teacher', name: 'ဦးဆောင်ဆရာမ'},
-            {user: 'student', pass: '123', role: 'student', name: 'မောင်ကျောင်းသား'}
+            {user: 'principal', pass: '123', role: 'principal', name: 'ကျောင်းအုပ်ကြီး (Principal)'},
+            {user: 'teacher', pass: '123', role: 'teacher', name: 'ဦးဆောင်ဆရာမ (Teacher)'},
+            {user: 'student', pass: '123', role: 'student', name: 'မောင်ကျောင်းသား (Student)'}
         ]));
     }
-    if (!localStorage.getItem('questions')) localStorage.setItem('questions', JSON.stringify([]));
-    if (!localStorage.getItem('exams')) localStorage.setItem('exams', JSON.stringify([]));
     if (!localStorage.getItem('results')) localStorage.setItem('results', JSON.stringify([]));
 
     let currentUser = null;
@@ -123,7 +163,7 @@
             currentUser = found;
             document.getElementById('loginSection').classList.add('hidden');
             document.getElementById('dashboardSection').classList.remove('hidden');
-            document.getElementById('welcomeText').innerText = `ကြိုဆိုပါတယ်, ${currentUser.name} (${currentUser.role.toUpperCase()})`;
+            document.getElementById('welcomeText').innerText = `မင်္ဂလာပါ၊ ${currentUser.name}`;
             loadDashboard();
         } else {
             document.getElementById('loginMsg').innerText = 'Username သို့မဟုတ် Password မှားယွင်းနေပါသည်။';
@@ -134,70 +174,96 @@
         let content = document.getElementById('roleContent');
         content.innerHTML = '';
 
-        if (currentUser.role === 'principal' || currentUser.role === 'teacher') {
-            content.innerHTML += `
-                <div class="card">
-                    <h3>📝 မေးခွန်းထည့်သွင်းရန် (Question Bank)</h3>
-                    <input type="text" id="qText" placeholder="မေးခွန်းစာသား ထည့်ရန်">
-                    <input type="text" id="qOptA" placeholder="Option A">
-                    <input type="text" id="qOptB" placeholder="Option B">
-                    <input type="text" id="qAns" placeholder="အမှန်ဖြေ (ဥပမာ - A)">
-                    <button onclick="saveQuestion()">မေးခွန်းသိမ်းမည်</button>
+        // --- 1. PRINCIPAL DASHBOARD ---
+        if (currentUser.role === 'principal') {
+            document.getElementById('portalSub').innerText = 'PRINCIPAL ADMINISTRATION';
+            content.innerHTML = `
+                <div class="grid-2">
+                    <div class="menu-card" onclick="alert('Students စာရင်း')"><h4>👥 Students</h4><p>ကျောင်းသားများ</p></div>
+                    <div class="menu-card" onclick="alert('Teachers စာရင်း')"><h4>🎓 Teachers</h4><p>ဆရာ/ဆရာမများ</p></div>
+                    <div class="menu-card" onclick="alert('Examinations')"><h4>📋 Examinations</h4><p>စာမေးပွဲများ</p></div>
+                    <div class="menu-card" onclick="alert('Question Bank')"><h4>📖 Question Bank</h4><p>မေးခွန်းဘဏ်</p></div>
                 </div>
-            `;
-        }
 
-        if (currentUser.role === 'student') {
-            content.innerHTML += `
-                <div class="card">
-                    <h3>✍️ စာမေးပွဲ ဖြေဆိုရန် (Exam Taking)</h3>
-                    <p>ဘာသာရပ်: အင်္ဂလိပ်စာ (Grade 12)</p>
-                    <p>မေးခွန်း: ပြည်သူ့အကျိုးပြု လုပ်ငန်းများကို ဖော်ပြပါ။</p>
-                    <select id="studentAns">
-                        <option value="A">A) မှန်ကန်သော အဖြေ ၁</option>
-                        <option value="B">B) မှန်ကန်သော အဖြေ ၂</option>
-                    </select>
-                    <button onclick="submitExam()">အဖြေတင်သွင်းမည် (Submit Exam)</button>
+                <div class="section-title">Management Menu</div>
+
+                <div class="grid-2">
+                    <div class="menu-card" onclick="alert('Student Management')"><h4>👤 Student Management</h4></div>
+                    <div class="menu-card" onclick="alert('Teacher Management')"><h4>👨‍🏫 Teacher Management</h4></div>
+                    <div class="menu-card" onclick="alert('Class & Subjects')"><h4>📚 Class & Subjects</h4></div>
+                    <div class="menu-card" onclick="alert('Question Bank')"><h4>📖 Question Bank</h4></div>
+                    <div class="menu-card" onclick="alert('Create Examination')"><h4>✍️ Create Examination</h4></div>
+                    <div class="menu-card" onclick="alert('Exam Schedule')"><h4>📅 Exam Schedule</h4></div>
+                    <div class="menu-card" onclick="showResults()"><h4>📊 Results & Reports</h4></div>
+                    <div class="menu-card" onclick="alert('Security & Backup')"><h4>⚙️ Security & Backup</h4></div>
                 </div>
-                <div id="resultArea"></div>
+                <div id="viewArea"></div>
             `;
-        } else {
-            content.innerHTML += `
-                <div class="card">
-                    <h3>📊 စာမေးပွဲ ရလဒ်များ (Exam Results)</h3>
-                    <button onclick="viewResults()">ဖြေဆိုထားသော စာရင်းများ ကြည့်ရန်</button>
-                    <div id="resultList" style="margin-top: 10px;"></div>
+        } 
+        // --- 2. TEACHER DASHBOARD ---
+        else if (currentUser.role === 'teacher') {
+            document.getElementById('portalSub').innerText = 'TEACHER PANEL - EXAM MANAGEMENT';
+            content.innerHTML = `
+                <div class="grid-2">
+                    <div class="menu-card" onclick="alert('Students စာရင်း')"><h4>👥 Students</h4><p>ကျောင်းသား စီမံခန့်ခွဲမှု</p></div>
+                    <div class="menu-card" onclick="alert('Question Bank')"><h4>📖 Question Bank</h4><p>မေးခွန်းဘဏ်</p></div>
+                    <div class="menu-card" onclick="alert('Create Exam')"><h4>✍️ Create Exam</h4><p>စာမေးပွဲ ဖန်တီးရန်</p></div>
+                    <div class="menu-card" onclick="alert('Import / Export')"><h4>📥 Import / Export</h4><p>မေးခွန်းဖိုင် ပို့/ယူ</p></div>
+                    <div class="menu-card" onclick="showResults()"><h4>📊 Exam Results</h4><p>စာမေးပွဲ ရလဒ်</p></div>
+                    <div class="menu-card" onclick="alert('Subjects & Chapters')"><h4>📚 Subjects & Chapters</h4><p>ဘာသာရပ်နှင့် အခန်းများ</p></div>
+                    <div class="menu-card" onclick="alert('Exam Schedule')"><h4>📅 Exam Schedule</h4><p>အချိန်ဇယား</p></div>
+                    <div class="menu-card" onclick="alert('Settings')"><h4>⚙️ Settings</h4><p>စနစ် သတ်မှတ်ချက်</p></div>
                 </div>
+                <div id="viewArea"></div>
+            `;
+        } 
+        // --- 3. STUDENT DASHBOARD ---
+        else if (currentUser.role === 'student') {
+            document.getElementById('portalSub').innerText = 'STUDENT EXAM PORTAL';
+            content.innerHTML = `
+                <div class="grid-2">
+                    <div class="menu-card"><h4>🎓 အတန်း</h4><p>Grade 12</p></div>
+                    <div class="menu-card"><h4>📚 ဘာသာရပ်</h4><p>Mathematics, English</p></div>
+                </div>
+
+                <div class="section-title">Available Exams (ဖြေဆိုရန် စာမေးပွဲများ)</div>
+
+                <div style="background: var(--card-sub); padding: 15px; border-radius: 12px; border: 1px solid rgba(255,215,0,0.3); margin-bottom: 15px;">
+                    <h4 style="color:var(--accent-color); margin:0 0 5px 0;">Mathematics (Grade 12)</h4>
+                    <p style="font-size:13px; color:var(--text-muted); margin:0 0 10px 0;">Chapter: Complex Number | 50 Marks | 60 Minutes</p>
+                    <button onclick="startExam()">စာမေးပွဲ ဖြေဆိုမည်</button>
+                </div>
+
+                <div class="grid-2">
+                    <div class="menu-card" onclick="showResults()"><h4>📊 My Results</h4><p>မိမိ ရလဒ်များ</p></div>
+                    <div class="menu-card" onclick="alert('My Profile')"><h4>👤 My Profile</h4><p>ကိုယ်ရေးအချက်အလက်</p></div>
+                </div>
+                <div id="viewArea"></div>
             `;
         }
     }
 
-    function saveQuestion() {
-        let qText = document.getElementById('qText').value;
-        let qAns = document.getElementById('qAns').value;
-        if(!qText) { alert('မေးခွန်းဖြည့်ပါ။'); return; }
-        
-        let questions = JSON.parse(localStorage.getItem('questions'));
-        questions.push({qText, qAns});
-        localStorage.setItem('questions', JSON.stringify(questions));
-        alert('မေးခွန်း အောင်မြင်စွာ သိမ်းဆည်းပြီးပါပြီ။');
-        document.getElementById('qText').value = '';
-        document.getElementById('qAns').value = '';
+    // စာမေးပွဲ ဖြေဆိုသည့် လုပ်ဆောင်ချက်
+    function startExam() {
+        document.getElementById('roleContent').innerHTML = `
+            <h3>Mathematics Exam (Grade 12)</h3>
+            <div style="background: var(--card-sub); padding: 15px; border-radius: 10px; text-align: left; margin-bottom: 15px;">
+                <p><b>မေးခွန်း ၁။</b> Complex Number ၏ တန်ဖိုးကို ရှာပါ-</p>
+                <label><input type="radio" name="ans" value="A"> A) 3 + 4i</label><br><br>
+                <label><input type="radio" name="ans" value="B"> B) 1 - 2i</label>
+            </div>
+            <button onclick="submitExam()">အဖြေတင်သွင်းမည် (Submit Exam)</button>
+        `;
     }
 
+    // အဖြေ တင်သွင်းပြီး Result Slip ထုတ်ပေးခြင်း
     function submitExam() {
-        let score = 18; // ယူဆချက် အမှတ်
-        let total = 20;
-        let result = {
-            student: currentUser.name,
-            score: score,
-            total: total,
-            grade: 'A',
-            date: new Date().toLocaleDateString()
-        };
+        let score = 48;
+        let total = 50;
+        let dateStr = new Date().toLocaleDateString();
 
         let results = JSON.parse(localStorage.getItem('results'));
-        results.push(result);
+        results.push({ student: currentUser.name, score: score, total: total, grade: 'A+', date: dateStr });
         localStorage.setItem('results', JSON.stringify(results));
 
         let slip = `
@@ -205,34 +271,37 @@ CHINDWIN FUTURE BRIGHT SCHOOL
 --------------------------------
 EXAM RESULT SLIP
 --------------------------------
-Student : ${result.student}
-Score   : ${result.score} / ${result.total}
-Grade   : ${result.grade}
-Date    : ${result.date}
+Student : ${currentUser.name}
+Subject : Mathematics (Grade 12)
+Score   : ${score} / ${total}
+Grade   : A+
+Date    : ${dateStr}
 --------------------------------
    Thermal Printer Ready
         `;
 
-        document.getElementById('resultArea').innerHTML = `
-            <p style="color: #69F0AE; text-align: center; font-weight: bold;">စာမေးပွဲ ဖြေဆိုပြီးစီးပါပြီ!</p>
+        document.getElementById('roleContent').innerHTML = `
+            <p style="color: #69F0AE; text-align: center; font-weight: bold; font-size: 17px;">စာမေးပွဲ ဖြေဆိုပြီးစီးပါပြီ!</p>
             <div class="receipt">${slip}</div>
-            <button onclick="window.print()" style="background-color: #69F0AE; color: #0A192F;">2-inch Printer ဖြင့် Print ထုတ်မည်</button>
+            <button onclick="window.print()" style="background-color: #69F0AE; color: #0A192F;">🖨️ 2-inch Thermal Printer ဖြင့် Print ထုတ်မည်</button>
+            <button onclick="loadDashboard()" style="margin-top:10px;">ပင်မစာမျက်နှာသို့ ပြန်ရန်</button>
         `;
     }
 
-    function viewResults() {
+    // ရလဒ်များ ကြည့်ရှုခြင်း
+    function showResults() {
         let results = JSON.parse(localStorage.getItem('results'));
-        let listDiv = document.getElementById('resultList');
+        let area = document.getElementById('viewArea');
         if(results.length === 0) {
-            listDiv.innerHTML = '<p>မှတ်တမ်း မရှိသေးပါ။</p>';
+            area.innerHTML = '<p style="text-align:center; color: var(--text-muted); margin-top:15px;">ဖြေဆိုထားသော စာရင်း မရှိသေးပါ။</p>';
             return;
         }
-        let html = '<ul>';
+        let html = '<div style="background:var(--card-sub); padding:10px; border-radius:10px; margin-top:15px;"><h4>ရလဒ် စာရင်းများ</h4><ul>';
         results.forEach(r => {
             html += `<li>${r.student} - ${r.score}/${r.total} (Grade: ${r.grade}) [${r.date}]</li>`;
         });
-        html += '</ul>';
-        listDiv.innerHTML = html;
+        html += '</ul></div>';
+        area.innerHTML = html;
     }
 
     function logout() {
@@ -240,6 +309,7 @@ Date    : ${result.date}
         document.getElementById('loginUser').value = '';
         document.getElementById('loginPass').value = '';
         document.getElementById('loginMsg').innerText = '';
+        document.getElementById('portalSub').innerText = 'SMART EXAMINATION SYSTEM';
         document.getElementById('dashboardSection').classList.add('hidden');
         document.getElementById('loginSection').classList.remove('hidden');
     }
