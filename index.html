@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CFBS Smart Exam System</title>
+    <style>
+        :root {
+            --bg-color: #0A192F;
+            --card-bg: #112240;
+            --accent-color: #FFD700;
+            --text-color: #FFFFFF;
+            --text-muted: #8892B0;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 15px;
+        }
+        .container {
+            max-width: 650px;
+            margin: 0 auto;
+            background-color: var(--card-bg);
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+        h2, h3 {
+            color: var(--accent-color);
+            text-align: center;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            margin: 6px 0 12px 0;
+            background-color: #0A192F;
+            border: 1px solid var(--accent-color);
+            border-radius: 8px;
+            color: var(--text-color);
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--accent-color);
+            color: var(--bg-color);
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 15px;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+        button:hover { opacity: 0.9; }
+        .hidden { display: none; }
+        .receipt {
+            background: #fff;
+            color: #000;
+            padding: 15px;
+            font-family: monospace;
+            border-radius: 8px;
+            white-space: pre-wrap;
+            margin-top: 15px;
+        }
+        .card {
+            background: rgba(255,255,255,0.05);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>CHINDWIN FUTURE BRIGHT SCHOOL</h2>
+    <h3>Smart Exam System</h3>
+
+    <!-- 1. Login Section -->
+    <div id="loginSection">
+        <h3>အကောင့်ဝင်ရန် (Login)</h3>
+        <label>Username</label>
+        <input type="text" id="loginUser" placeholder="principal / teacher / student">
+        <label>Password</label>
+        <input type="password" id="loginPass" placeholder="password">
+        <button onclick="handleLogin()">ဝင်မည် (Login)</button>
+        <p id="loginMsg" style="color: #ff6b6b; text-align: center;"></p>
+    </div>
+
+    <!-- 2. Dashboard Section -->
+    <div id="dashboardSection" class="hidden">
+        <h3 id="welcomeText"></h3>
+        <div id="roleContent"></div>
+        <button onclick="logout()" style="background-color: #ff6b6b; color: #fff; margin-top: 25px;">ထွက်ရန် (Logout)</button>
+    </div>
+</div>
+
+<script>
+    // LocalStorage Database Initialization
+    if (!localStorage.getItem('users')) {
+        localStorage.setItem('users', JSON.stringify([
+            {user: 'principal', pass: '123', role: 'principal', name: 'ကျောင်းအုပ်ကြီး'},
+            {user: 'teacher', pass: '123', role: 'teacher', name: 'ဦးဆောင်ဆရာမ'},
+            {user: 'student', pass: '123', role: 'student', name: 'မောင်ကျောင်းသား'}
+        ]));
+    }
+    if (!localStorage.getItem('questions')) localStorage.setItem('questions', JSON.stringify([]));
+    if (!localStorage.getItem('exams')) localStorage.setItem('exams', JSON.stringify([]));
+    if (!localStorage.getItem('results')) localStorage.setItem('results', JSON.stringify([]));
+
+    let currentUser = null;
+
+    function handleLogin() {
+        let u = document.getElementById('loginUser').value.trim();
+        let p = document.getElementById('loginPass').value.trim();
+        let users = JSON.parse(localStorage.getItem('users'));
+
+        let found = users.find(x => x.user === u && x.pass === p);
+        if (found) {
+            currentUser = found;
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('dashboardSection').classList.remove('hidden');
+            document.getElementById('welcomeText').innerText = `ကြိုဆိုပါတယ်, ${currentUser.name} (${currentUser.role.toUpperCase()})`;
+            loadDashboard();
+        } else {
+            document.getElementById('loginMsg').innerText = 'Username သို့မဟုတ် Password မှားယွင်းနေပါသည်။';
+        }
+    }
+
+    function loadDashboard() {
+        let content = document.getElementById('roleContent');
+        content.innerHTML = '';
+
+        if (currentUser.role === 'principal' || currentUser.role === 'teacher') {
+            content.innerHTML += `
+                <div class="card">
+                    <h3>📝 မေးခွန်းထည့်သွင်းရန် (Question Bank)</h3>
+                    <input type="text" id="qText" placeholder="မေးခွန်းစာသား ထည့်ရန်">
+                    <input type="text" id="qOptA" placeholder="Option A">
+                    <input type="text" id="qOptB" placeholder="Option B">
+                    <input type="text" id="qAns" placeholder="အမှန်ဖြေ (ဥပမာ - A)">
+                    <button onclick="saveQuestion()">မေးခွန်းသိမ်းမည်</button>
+                </div>
+            `;
+        }
+
+        if (currentUser.role === 'student') {
+            content.innerHTML += `
+                <div class="card">
+                    <h3>✍️ စာမေးပွဲ ဖြေဆိုရန် (Exam Taking)</h3>
+                    <p>ဘာသာရပ်: အင်္ဂလိပ်စာ (Grade 12)</p>
+                    <p>မေးခွန်း: ပြည်သူ့အကျိုးပြု လုပ်ငန်းများကို ဖော်ပြပါ။</p>
+                    <select id="studentAns">
+                        <option value="A">A) မှန်ကန်သော အဖြေ ၁</option>
+                        <option value="B">B) မှန်ကန်သော အဖြေ ၂</option>
+                    </select>
+                    <button onclick="submitExam()">အဖြေတင်သွင်းမည် (Submit Exam)</button>
+                </div>
+                <div id="resultArea"></div>
+            `;
+        } else {
+            content.innerHTML += `
+                <div class="card">
+                    <h3>📊 စာမေးပွဲ ရလဒ်များ (Exam Results)</h3>
+                    <button onclick="viewResults()">ဖြေဆိုထားသော စာရင်းများ ကြည့်ရန်</button>
+                    <div id="resultList" style="margin-top: 10px;"></div>
+                </div>
+            `;
+        }
+    }
+
+    function saveQuestion() {
+        let qText = document.getElementById('qText').value;
+        let qAns = document.getElementById('qAns').value;
+        if(!qText) { alert('မေးခွန်းဖြည့်ပါ။'); return; }
+        
+        let questions = JSON.parse(localStorage.getItem('questions'));
+        questions.push({qText, qAns});
+        localStorage.setItem('questions', JSON.stringify(questions));
+        alert('မေးခွန်း အောင်မြင်စွာ သိမ်းဆည်းပြီးပါပြီ။');
+        document.getElementById('qText').value = '';
+        document.getElementById('qAns').value = '';
+    }
+
+    function submitExam() {
+        let score = 18; // ယူဆချက် အမှတ်
+        let total = 20;
+        let result = {
+            student: currentUser.name,
+            score: score,
+            total: total,
+            grade: 'A',
+            date: new Date().toLocaleDateString()
+        };
+
+        let results = JSON.parse(localStorage.getItem('results'));
+        results.push(result);
+        localStorage.setItem('results', JSON.stringify(results));
+
+        let slip = `
+CHINDWIN FUTURE BRIGHT SCHOOL
+--------------------------------
+EXAM RESULT SLIP
+--------------------------------
+Student : ${result.student}
+Score   : ${result.score} / ${result.total}
+Grade   : ${result.grade}
+Date    : ${result.date}
+--------------------------------
+   Thermal Printer Ready
+        `;
+
+        document.getElementById('resultArea').innerHTML = `
+            <p style="color: #69F0AE; text-align: center; font-weight: bold;">စာမေးပွဲ ဖြေဆိုပြီးစီးပါပြီ!</p>
+            <div class="receipt">${slip}</div>
+            <button onclick="window.print()" style="background-color: #69F0AE; color: #0A192F;">2-inch Printer ဖြင့် Print ထုတ်မည်</button>
+        `;
+    }
+
+    function viewResults() {
+        let results = JSON.parse(localStorage.getItem('results'));
+        let listDiv = document.getElementById('resultList');
+        if(results.length === 0) {
+            listDiv.innerHTML = '<p>မှတ်တမ်း မရှိသေးပါ။</p>';
+            return;
+        }
+        let html = '<ul>';
+        results.forEach(r => {
+            html += `<li>${r.student} - ${r.score}/${r.total} (Grade: ${r.grade}) [${r.date}]</li>`;
+        });
+        html += '</ul>';
+        listDiv.innerHTML = html;
+    }
+
+    function logout() {
+        currentUser = null;
+        document.getElementById('loginUser').value = '';
+        document.getElementById('loginPass').value = '';
+        document.getElementById('loginMsg').innerText = '';
+        document.getElementById('dashboardSection').classList.add('hidden');
+        document.getElementById('loginSection').classList.remove('hidden');
+    }
+</script>
+
+</body>
+</html>
