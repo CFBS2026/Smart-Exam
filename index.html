@@ -166,8 +166,8 @@
             {user: 'student', pass: '123', role: 'student', name: 'မောင်ကျောင်းသား (Student)'}
         ]));
     }
-    if (!localStorage.getItem('questions_v5')) {
-        localStorage.setItem('questions_v5', JSON.stringify([
+    if (!localStorage.getItem('questions_v6')) {
+        localStorage.setItem('questions_v6', JSON.stringify([
             {q: 'The equation of the sphere is x^2 + y^2 + z^2 + 6x - 2y + 2z - 5 = 0. Then the radius is?', optA: '3', optB: '4', optC: '5', optD: '6', ans: 'A'}
         ]));
     }
@@ -222,24 +222,24 @@
     function renderView(type) {
         let view = document.getElementById('dynamicView');
         if (type === 'questions') {
-            let qs = JSON.parse(localStorage.getItem('questions_v5')) || [];
+            let qs = JSON.parse(localStorage.getItem('questions_v6')) || [];
             let html = `
                 <div class="card-box">
-                    <h4>📖 Google Form ပုံစံ မေးခွန်းဖန်တီးရန် (OCR Scan)</h4>
+                    <h4>📖 Google Form ပုံစံ မေးခွန်းဖန်တီးရန် (Smart OCR)</h4>
                     
                     <div class="ocr-box">
                         <label><b>📷 မေးခွန်းပါသော ဓာတ်ပုံ တင်ပါ</b></label><br><br>
-                        <input type="file" id="ocrImg" accept="image/*" onchange="processOCRForm()">
+                        <input type="file" id="ocrImg" accept="image/*" onchange="processSmartOCR()">
                         <p id="ocrStatus" style="font-size:12px; color:var(--accent-color); margin-top:8px;"></p>
                     </div>
 
                     <label><b>မေးခွန်း (Question)</b></label>
-                    <textarea id="qText" rows="3" placeholder="မေးခွန်းစာသားကို ဤနေရာတွင် ထည့်ပါ သို့မဟုတ် ပုံတင်၍ OCR ဖတ်ပါ။"></textarea>
+                    <textarea id="qText" rows="3" placeholder="မေးခွန်းစာသား"></textarea>
                     
-                    <label><b>Option A</b></label><input type="text" id="qOptA" placeholder="ဖြေဆိုရန် A ရွေးချယ်စရာ">
-                    <label><b>Option B</b></label><input type="text" id="qOptB" placeholder="ဖြေဆိုရန် B ရွေးချယ်စရာ">
-                    <label><b>Option C</b></label><input type="text" id="qOptC" placeholder="ဖြေဆိုရန် C ရွေးချယ်စရာ">
-                    <label><b>Option D</b></label><input type="text" id="qOptD" placeholder="ဖြေဆိုရန် D ရွေးချယ်စရာ">
+                    <label><b>Option A</b></label><input type="text" id="qOptA" placeholder="Option A">
+                    <label><b>Option B</b></label><input type="text" id="qOptB" placeholder="Option B">
+                    <label><b>Option C</b></label><input type="text" id="qOptC" placeholder="Option C">
+                    <label><b>Option D</b></label><input type="text" id="qOptD" placeholder="Option D">
 
                     <label><b>မှန်ကန်သော အဖြေ (Correct Answer)</b></label>
                     <select id="qAns">
@@ -249,7 +249,7 @@
                         <option value="D">Option D</option>
                     </select>
                     
-                    <button onclick="saveFormQuestion()">➕ Google Form ပုံစံ မေးခွန်း သိမ်းဆည်းမည်</button>
+                    <button onclick="saveFormQuestion()">➕ မေးခွန်း သိမ်းဆည်းမည်</button>
                     <button onclick="clearQuestionBank()" style="background:#ff6b6b; color:#fff; margin-top:5px;">မေးခွန်းဟောင်းများ အကုန်ဖျက်မည်</button>
                     
                     <h4 style="margin-top:20px; text-align:left;">သိမ်းဆည်းထားသော မေးခွန်းများ (${qs.length})</h4>
@@ -287,38 +287,44 @@
         return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
     }
 
-    // --- OCR Smart Parser (Google Form Style Auto-Split) ---
-    function processOCRForm() {
+    // --- Smart OCR Parser (Isolates Question & Options A, B, C, D) ---
+    function processSmartOCR() {
         let fileInput = document.getElementById('ocrImg');
         let status = document.getElementById('ocrStatus');
 
         if (fileInput.files.length === 0) return;
 
         let file = fileInput.files[0];
-        status.innerText = '⏳ ပုံထဲမှ စာသားများကို OCR ဖတ်ယူနေပါသည်။ ခေတ္တစောင့်ပါ...';
+        status.innerText = '⏳ ပုံထဲမှ စာသားများကို Smart OCR ဖြင့် ခွဲခြမ်းစိတ်ဖြာနေပါသည်...';
 
         Tesseract.recognize(
             file,
             'eng',
             { logger: m => { if(m.status === 'recognizing text') status.innerText = `⏳ ဖတ်ယူနေမှု: ${Math.round(m.progress * 100)}%`; } }
         ).then(({ data: { text } }) => {
-            status.innerText = '✅ OCR ဖတ်ယူပြီး Google Form ကွက်လပ်များထဲသို့ ထည့်သွင်းပြီးပါပြီ။';
+            status.innerText = '✅ မေးခွန်းနှင့် Options များ သီးသန့် ကွဲထွက်သွားပါပြီ။';
             
-            // Auto-parse options based on common patterns (A., B., C., D. or a), b), c), d))
-            let lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-            let questionText = [];
+            // Normalize spaces and split by common option patterns (A., B., C., D. or A) B) C) D))
+            let cleanText = text.replace(/\r\n/g, '\n').replace(/\n+/g, ' ');
+            
+            let qPart = cleanText;
             let optA = '', optB = '', optC = '', optD = '';
 
-            lines.forEach(line => {
-                let lower = line.toLowerCase();
-                if (/^a[\.\)]/.test(lower)) optA = line.replace(/^a[\.\)]\s*/i, '');
-                else if (/^b[\.\)]/.test(lower)) optB = line.replace(/^b[\.\)]\s*/i, '');
-                else if (/^c[\.\)]/.test(lower)) optC = line.replace(/^c[\.\)]\s*/i, '');
-                else if (/^d[\.\)]/.test(lower)) optD = line.replace(/^d[\.\)]\s*/i, '');
-                else questionText.push(line);
-            });
+            // Regex to extract A, B, C, D segments
+            let matchA = qTextMatch(cleanText, /(?:[^\w]|^)[aA][\.\)]\s*(.*?)(?=(?:[^\w]|^)[bB][\.\)]|$)/);
+            let matchB = qTextMatch(cleanText, /(?:[^\w]|^)[bB][\.\)]\s*(.*?)(?=(?:[^\w]|^)[cC][\.\)]|$)/);
+            let matchC = qTextMatch(cleanText, /(?:[^\w]|^)[cC][\.\)]\s*(.*?)(?=(?:[^\w]|^)[dD][\.\)]|$)/);
+            let matchD = qTextMatch(cleanText, /(?:[^\w]|^)[dD][\.\)]\s*(.*?)$/);
 
-            document.getElementById('qText').value = questionText.join(' ');
+            if (matchA) optA = matchA.trim();
+            if (matchB) optB = matchB.trim();
+            if (matchC) optC = matchC.trim();
+            if (matchD) optD = matchD.trim();
+
+            // Extract question by removing the options part
+            let mainQuestion = cleanText.split(/([aA][\.\)]|[bB][\.\)]|[cC][\.\)]|[dD][\.\)])/)[0].trim();
+
+            document.getElementById('qText').value = mainQuestion || cleanText;
             document.getElementById('qOptA').value = optA;
             document.getElementById('qOptB').value = optB;
             document.getElementById('qOptC').value = optC;
@@ -328,6 +334,11 @@
             status.innerText = '❌ စာသား ဖတ်ယူရာတွင် အမှားအယွင်း ရှိနေပါသည်။';
             console.error(err);
         });
+    }
+
+    function qTextMatch(text, regex) {
+        let m = text.match(regex);
+        return m ? m[1] : '';
     }
 
     function saveFormQuestion() {
@@ -340,27 +351,27 @@
         
         if(!q) { alert('မေးခွန်း စာသား ဖြည့်ပါ။'); return; }
         
-        let qs = JSON.parse(localStorage.getItem('questions_v5')) || [];
+        let qs = JSON.parse(localStorage.getItem('questions_v6')) || [];
         qs.push({q, optA, optB, optC, optD, ans});
-        localStorage.setItem('questions_v5', JSON.stringify(qs));
+        localStorage.setItem('questions_v6', JSON.stringify(qs));
         
-        alert('Google Form ပုံစံ မေးခွန်း အောင်မြင်စွာ သိမ်းဆည်းပြီးပါပြီ။');
+        alert('မေးခွန်း အောင်မြင်စွာ သိမ်းဆည်းပြီးပါပြီ။');
         renderView('questions');
     }
 
     function clearQuestionBank() {
         if(confirm('မေးခွန်းများ အားလုံးကို ဖျက်ပစ်ရန် သေချာပါသလား?')) {
-            localStorage.setItem('questions_v5', JSON.stringify([]));
+            localStorage.setItem('questions_v6', JSON.stringify([]));
             renderView('questions');
         }
     }
 
-    // --- Student Google Form Style Exam Taking Flow ---
+    // --- Student Exam Taking Flow ---
     function startExam() {
-        let qs = JSON.parse(localStorage.getItem('questions_v5')) || [];
+        let qs = JSON.parse(localStorage.getItem('questions_v6')) || [];
         if(qs.length === 0) { alert('မေးခွန်း မရှိသေးပါ။ ဆရာ/မ ကို အကြောင်းကြားပါ။'); return; }
         
-        let q = qs[0]; // နမူနာ ပထမမေးခွန်း
+        let q = qs[0];
         document.getElementById('roleContent').innerHTML = `
             <div class="card-box" style="text-align:left;">
                 <h3>Mathematics Exam (Google Form Style)</h3>
