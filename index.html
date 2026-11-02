@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CHINDWIN FUTURE BRIGHT SCHOOL - Smart Exam System</title>
 
-    <!-- Tesseract.js (Client-side OCR Engine) -->
+    <!-- Tesseract.js (OCR Library) -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
     <style>
@@ -120,6 +120,34 @@
             margin-bottom: 15px;
             background: rgba(255,215,0,0.05);
         }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 13px;
+        }
+        th, td {
+            border: 1px solid rgba(255,215,0,0.3);
+            padding: 8px;
+            text-align: left;
+        }
+        th { color: var(--accent-color); }
+
+        /* 2-inch Thermal Printer Receipt Styling */
+        @media print {
+            body * { visibility: hidden; }
+            .printable-receipt, .printable-receipt * { visibility: visible; }
+            .printable-receipt {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 58mm;
+                background: #fff;
+                color: #000;
+                font-family: monospace;
+                padding: 5px;
+            }
+        }
         .receipt {
             background: #fff;
             color: #000;
@@ -157,15 +185,22 @@
 </div>
 
 <script>
-    // Database Setup
+    // Database Setup (LocalStorage)
     if (!localStorage.getItem('users')) {
         localStorage.setItem('users', JSON.stringify([
-            {user: 'principal', pass: '123', role: 'principal', name: 'ကျောင်းအုပ်ကြီး'},
-            {user: 'teacher', pass: '123', role: 'teacher', name: 'ဦးဆောင်ဆရာမ'},
-            {user: 'student', pass: '123', role: 'student', name: 'မောင်ကျောင်းသား'}
+            {user: 'principal', pass: '123', role: 'principal', name: 'ကျောင်းအုပ်ကြီး (Principal)'},
+            {user: 'teacher', pass: '123', role: 'teacher', name: 'ဦးဆောင်ဆရာမ (Teacher)'},
+            {user: 'student', pass: '123', role: 'student', name: 'မောင်ကျောင်းသား (Student)'}
         ]));
     }
-    if (!localStorage.getItem('questions')) localStorage.setItem('questions', JSON.stringify([]));
+    if (!localStorage.getItem('students')) localStorage.setItem('students', JSON.stringify([{name: 'မောင်ကျောင်းသား', grade: 'Grade 12', roll: '1'}]));
+    if (!localStorage.getItem('teachers')) localStorage.setItem('teachers', JSON.stringify([{name: 'ဦးဆောင်ဆရာမ', subject: 'Mathematics'}]));
+    if (!localStorage.getItem('questions')) localStorage.setItem('questions', JSON.stringify([
+        {q: 'Complex Number ၏ တန်ဖိုးကို ရှာပါ?', optA: '3 + 4i', optB: '1 - 2i', ans: 'A', sub: 'Mathematics'}
+    ]));
+    if (!localStorage.getItem('exams')) localStorage.setItem('exams', JSON.stringify([
+        {title: 'Mathematics Monthly Exam', subject: 'Mathematics', marks: '50', duration: '60 mins'}
+    ]));
     if (!localStorage.getItem('results')) localStorage.setItem('results', JSON.stringify([]));
 
     let currentUser = null;
@@ -180,7 +215,7 @@
             currentUser = found;
             document.getElementById('loginSection').classList.add('hidden');
             document.getElementById('dashboardSection').classList.remove('hidden');
-            document.getElementById('welcomeText').innerText = `မင်္ဂလာပါ၊ ${currentUser.name} (${currentUser.role.toUpperCase()})`;
+            document.getElementById('welcomeText').innerText = `မင်္ဂလာပါ၊ ${currentUser.name}`;
             loadDashboard();
         } else {
             document.getElementById('loginMsg').innerText = 'Username သို့မဟုတ် Password မှားယွင်းနေပါသည်။';
@@ -191,28 +226,69 @@
         let content = document.getElementById('roleContent');
         content.innerHTML = '';
 
-        if (currentUser.role === 'principal' || currentUser.role === 'teacher') {
-            document.getElementById('portalSub').innerText = currentUser.role.toUpperCase() + ' PANEL';
+        // --- 1. PRINCIPAL DASHBOARD ---
+        if (currentUser.role === 'principal') {
+            document.getElementById('portalSub').innerText = 'PRINCIPAL ADMINISTRATION';
             content.innerHTML = `
                 <div class="grid-2">
-                    <div class="menu-card" onclick="renderView('questions')"><h4>📷 Question Bank (OCR)</h4><p>ပုံဖြင့် မေးခွန်းဖတ်ရန်</p></div>
-                    <div class="menu-card" onclick="renderView('reports')"><h4>📊 Exam Results</h4><p>စာမေးပွဲ ရလဒ်</p></div>
+                    <div class="menu-card" onclick="renderView('studentMgmt')"><h4>👥 Students</h4><p>ကျောင်းသား စာရင်း</p></div>
+                    <div class="menu-card" onclick="renderView('teacherMgmt')"><h4>🎓 Teachers</h4><p>ဆရာ/ဆရာမ စာရင်း</p></div>
+                    <div class="menu-card" onclick="renderView('exams')"><h4>📋 Examinations</h4><p>စာမေးပွဲများ</p></div>
+                    <div class="menu-card" onclick="renderView('questions')"><h4>📖 Question Bank</h4><p>မေးခွန်းဘဏ် (OCR)</p></div>
+                </div>
+                <div class="section-title">Management Menu</div>
+                <div class="grid-2">
+                    <div class="menu-card" onclick="renderView('studentMgmt')"><h4>👤 Student Management</h4></div>
+                    <div class="menu-card" onclick="renderView('teacherMgmt')"><h4>👨‍🏫 Teacher Management</h4></div>
+                    <div class="menu-card" onclick="renderView('subjects')"><h4>📚 Class & Subjects</h4></div>
+                    <div class="menu-card" onclick="renderView('questions')"><h4>📖 Question Bank (OCR)</h4></div>
+                    <div class="menu-card" onclick="renderView('createExam')"><h4>✍️ Create Examination</h4></div>
+                    <div class="menu-card" onclick="renderView('schedule')"><h4>📅 Exam Schedule</h4></div>
+                    <div class="menu-card" onclick="renderView('reports')"><h4>📊 Results & Reports</h4></div>
+                    <div class="menu-card" onclick="renderView('backup')"><h4>⚙️ Security & Backup</h4></div>
                 </div>
                 <div id="dynamicView"></div>
             `;
-            renderView('questions');
-        } else {
+        } 
+        // --- 2. TEACHER DASHBOARD ---
+        else if (currentUser.role === 'teacher') {
+            document.getElementById('portalSub').innerText = 'TEACHER EXAM PANEL';
+            content.innerHTML = `
+                <div class="grid-2">
+                    <div class="menu-card" onclick="renderView('studentMgmt')"><h4>👥 Students</h4><p>ကျောင်းသား စစ်ဆေးချက်</p></div>
+                    <div class="menu-card" onclick="renderView('questions')"><h4>📖 Question Bank</h4><p>မေးခွန်းဘဏ် (OCR)</p></div>
+                    <div class="menu-card" onclick="renderView('createExam')"><h4>✍️ Create Exam</h4><p>စာမေးပွဲ ဖန်တီးရန်</p></div>
+                    <div class="menu-card" onclick="renderView('reports')"><h4>📊 Exam Results</h4><p>စာမေးပွဲ ရလဒ်</p></div>
+                    <div class="menu-card" onclick="renderView('subjects')"><h4>📚 Subjects & Chapters</h4><p>ဘာသာရပ်များ</p></div>
+                    <div class="menu-card" onclick="renderView('schedule')"><h4>📅 Exam Schedule</h4><p>အချိန်ဇယား</p></div>
+                </div>
+                <div id="dynamicView"></div>
+            `;
+        } 
+        // --- 3. STUDENT DASHBOARD ---
+        else if (currentUser.role === 'student') {
             document.getElementById('portalSub').innerText = 'STUDENT EXAM PORTAL';
             content.innerHTML = `
+                <div class="grid-2">
+                    <div class="menu-card"><h4>🎓 အတန်း</h4><p>Grade 12</p></div>
+                    <div class="menu-card"><h4>📚 ဘာသာရပ်</h4><p>Mathematics, English</p></div>
+                </div>
+                <div class="section-title">Available Exams (ဖြေဆိုရန် စာမေးပွဲများ)</div>
                 <div class="card-box">
-                    <h4>Available Exam: Mathematics</h4>
+                    <h4 style="color:var(--accent-color); margin:0 0 5px 0;">Mathematics (Complex Number)</h4>
+                    <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px 0;">ချိန်ခွင်လျှာ: မိနစ် 60 | အမှတ်: 50</p>
                     <button onclick="startExam()">စာမေးပွဲ ဖြေဆိုမည်</button>
+                </div>
+                <div class="grid-2">
+                    <div class="menu-card" onclick="renderView('myResults')"><h4>📊 My Results</h4><p>မိမိ ရလဒ်များ</p></div>
+                    <div class="menu-card" onclick="alert('Student Profile: ' + currentUser.name)"><h4>👤 My Profile</h4><p>ကိုယ်ရေးအချက်အလက်</p></div>
                 </div>
                 <div id="dynamicView"></div>
             `;
         }
     }
 
+    // --- Dynamic Views Engine ---
     function renderView(type) {
         let view = document.getElementById('dynamicView');
         if (type === 'questions') {
@@ -220,7 +296,6 @@
             let html = `
                 <div class="card-box">
                     <h4>📖 Question Bank (OCR Photo Scan)</h4>
-                    
                     <div class="ocr-box">
                         <label><b>📷 မေးခွန်း ဓာတ်ပုံ တင်ရန် (OCR Scan)</b></label><br><br>
                         <input type="file" id="ocrImg" accept="image/*" onchange="processOCR()">
@@ -241,16 +316,55 @@
             qs.forEach((q, i) => { html += `<li><b>${i+1}. ${q.q}</b><br>A) ${q.optA} | B) ${q.optB} [အမှန်: ${q.ans}]</li><br>`; });
             html += `</ul></div>`;
             view.innerHTML = html;
-        } else if (type === 'reports') {
+        } else if (type === 'createExam') {
+            view.innerHTML = `<div class="card-box"><h4>✍️ စာမေးပွဲအသစ် ဖန်တီးရန်</h4>
+                <input type="text" id="exTitle" placeholder="စာမေးပွဲခေါင်းစဉ်">
+                <input type="text" id="exSub" placeholder="ဘာသာရပ်">
+                <input type="text" id="exMarks" placeholder="စုစုပေါင်းရမှတ်">
+                <button onclick="saveExam()">စာမေးပွဲ သိမ်းဆည်းမည်</button></div>`;
+        } else if (type === 'reports' || type === 'myResults') {
             let res = JSON.parse(localStorage.getItem('results'));
-            let html = `<div class="card-box"><h4>📊 စာမေးပွဲ ရလဒ်များ</h4><ul>`;
-            res.forEach(r => { html += `<li>${r.student} - ${r.score}/${r.total} (${r.grade}) [${r.date}]</li>`; });
-            html += `</ul></div>`;
+            let html = `<div class="card-box"><h4>📊 စာမေးပွဲ ရလဒ်များ</h4>`;
+            if (res.length === 0) { html += `<p>မှတ်တမ်း မရှိသေးပါ။</p>`; }
+            else {
+                html += `<table><tr><th>ကျောင်းသား</th><th>ဘာသာရပ်</th><th>ရမှတ်</th><th>ဂရိတ်</th></tr>`;
+                res.forEach(r => {
+                    if(currentUser.role === 'student' && r.student !== currentUser.name) return;
+                    html += `<tr><td>${r.student}</td><td>${r.subject}</td><td>${r.score}/${r.total}</td><td>${r.grade}</td></tr>`;
+                });
+                html += `</table>`;
+            }
+            html += `</div>`;
             view.innerHTML = html;
+        } else if (type === 'studentMgmt') {
+            let sts = JSON.parse(localStorage.getItem('students'));
+            view.innerHTML = `<div class="card-box"><h4>👤 ကျောင်းသား စီမံခန့်ခွဲမှု</h4>
+                <input type="text" id="stName" placeholder="ကျောင်းသားအမည်">
+                <input type="text" id="stGrade" placeholder="အတန်း (ဥပမာ - Grade 12)">
+                <button onclick="addStudent()">ကျောင်းသား အသစ်ထည့်မည်</button>
+                <ul>` + sts.map(s => `<li>${s.name} (${s.grade})</li>`).join('') + `</ul></div>`;
+        } else if (type === 'teacherMgmt') {
+            let tcs = JSON.parse(localStorage.getItem('teachers'));
+            view.innerHTML = `<div class="card-box"><h4>👨‍🏫 ဆရာ/ဆရာမ စီမံခန့်ခွဲမှု</h4>
+                <input type="text" id="tcName" placeholder="ဆရာမအမည်">
+                <input type="text" id="tcSub" placeholder="သင်ကြားသည့် ဘာသာရပ်">
+                <button onclick="addTeacher()">ဆရာမ အသစ်ထည့်မည်</button>
+                <ul>` + tcs.map(t => `<li>${t.name} (${t.subject})</li>`).join('') + `</ul></div>`;
+        } else if (type === 'backup') {
+            view.innerHTML = `<div class="card-box"><h4>⚙️ Security & Data Backup</h4>
+                <p style="font-size:12px; color:var(--text-muted);">ဒေတာများကို ဖိုင်ဖြင့် ထုတ်ယူသိမ်းဆည်းနိုင်ပါသည်။</p>
+                <button onclick="exportData()">Export Database (JSON)</button></div>`;
+        } else if (type === 'subjects') {
+            view.innerHTML = `<div class="card-box"><h4>📚 Class & Subjects</h4><p>Grade 12: Myanmar, English, Mathematics, Chemistry, Physics, Biology</p></div>`;
+        } else if (type === 'schedule') {
+            view.innerHTML = `<div class="card-box"><h4>📅 Exam Schedule</h4><p>Mathematics Exam: 10:00 AM - 11:00 AM</p></div>`;
+        } else if (type === 'exams') {
+            let ex = JSON.parse(localStorage.getItem('exams'));
+            view.innerHTML = `<div class="card-box"><h4>📋 စာမေးပွဲ စာရင်းများ</h4><ul>` + ex.map(e => `<li>${e.title} (${e.subject})</li>`).join('') + `</ul></div>`;
         }
     }
 
-    // --- OCR Image Processing Engine ---
+    // --- OCR Image Scanner Engine ---
     function processOCR() {
         let fileInput = document.getElementById('ocrImg');
         let status = document.getElementById('ocrStatus');
@@ -263,7 +377,7 @@
 
         Tesseract.recognize(
             file,
-            'eng', // အင်္ဂလိပ်စာ အဓိက Scan ဖတ်ရန်
+            'eng',
             { logger: m => { if(m.status === 'recognizing text') status.innerText = `⏳ ဖတ်ယူနေမှု: ${Math.round(m.progress * 100)}%`; } }
         ).then(({ data: { text } }) => {
             status.innerText = '✅ OCR စာသား ဖတ်ယူခြင်း အောင်မြင်ပါသည်။';
@@ -274,6 +388,7 @@
         });
     }
 
+    // Database Actions
     function addQuestion() {
         let q = document.getElementById('newQ').value;
         let optA = document.getElementById('optA').value;
@@ -287,26 +402,70 @@
         renderView('questions');
     }
 
+    function addStudent() {
+        let name = document.getElementById('stName').value;
+        let grade = document.getElementById('stGrade').value;
+        if(!name) { alert('အမည်ဖြည့်ပါ။'); return; }
+        let sts = JSON.parse(localStorage.getItem('students'));
+        sts.push({name, grade});
+        localStorage.setItem('students', JSON.stringify(sts));
+        alert('ကျောင်းသား အောင်မြင်စွာ ထည့်ပြီးပါပြီ။');
+        renderView('studentMgmt');
+    }
+
+    function addTeacher() {
+        let name = document.getElementById('tcName').value;
+        let subject = document.getElementById('tcSub').value;
+        if(!name) { alert('အမည်ဖြည့်ပါ။'); return; }
+        let tcs = JSON.parse(localStorage.getItem('teachers'));
+        tcs.push({name, subject});
+        localStorage.setItem('teachers', JSON.stringify(tcs));
+        alert('ဆရာ/မ အောင်မြင်စွာ ထည့်ပြီးပါပြီ။');
+        renderView('teacherMgmt');
+    }
+
+    function saveExam() {
+        let title = document.getElementById('exTitle').value;
+        let subject = document.getElementById('exSub').value;
+        let marks = document.getElementById('exMarks').value;
+        if(!title) { alert('ခေါင်းစဉ်ဖြည့်ပါ။'); return; }
+        let exams = JSON.parse(localStorage.getItem('exams'));
+        exams.push({title, subject, marks});
+        localStorage.setItem('exams', JSON.stringify(exams));
+        alert('စာမေးပွဲ ဖန်တီးပြီးပါပြီ။');
+    }
+
+    function exportData() {
+        let dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(localStorage));
+        let dlAnchor = document.createElement('a');
+        dlAnchor.setAttribute("href", dataStr);
+        dlAnchor.setAttribute("download", "cfbs_exam_backup.json");
+        dlAnchor.click();
+    }
+
+    // --- Student Exam Flow & 2-inch Bluetooth Thermal Printer Slip ---
     function startExam() {
         let qs = JSON.parse(localStorage.getItem('questions'));
-        if(qs.length === 0) { alert('မေးခွန်း မရှိသေးပါ။ ဆရာ/မ ကို အကြောင်းကြားပါ။'); return; }
-        
-        let q = qs[0];
+        let q = qs[0] || {q: 'Complex Number ၏ တန်ဖိုးကို ရှာပါ?', optA: '3 + 4i', optB: '1 - 2i'};
+
         document.getElementById('roleContent').innerHTML = `
             <div class="card-box">
-                <h3>Mathematics Exam</h3>
+                <h3>Mathematics Exam (Grade 12)</h3>
                 <p><b>မေးခွန်း။</b> ${q.q}</p>
                 <label><input type="radio" name="ans" value="A"> A) ${q.optA}</label><br><br>
                 <label><input type="radio" name="ans" value="B"> B) ${q.optB}</label><br><br>
-                <button onclick="submitExam()">အဖြေတင်သွင်းမည်</button>
+                <button onclick="submitExam()">အဖြေတင်သွင်းမည် (Submit Exam)</button>
             </div>
         `;
     }
 
     function submitExam() {
+        let score = 48;
+        let total = 50;
         let dateStr = new Date().toLocaleDateString();
+
         let results = JSON.parse(localStorage.getItem('results'));
-        results.push({ student: currentUser.name, score: 50, total: 50, grade: 'A+', date: dateStr });
+        results.push({ student: currentUser.name, subject: 'Mathematics', score: score, total: total, grade: 'A+', date: dateStr });
         localStorage.setItem('results', JSON.stringify(results));
 
         let slip = `CHINDWIN FUTURE BRIGHT SCHOOL
@@ -314,14 +473,16 @@
 EXAM RESULT SLIP
 --------------------------------
 Student : ${currentUser.name}
-Score   : 50 / 50
+Subject : Mathematics (Grade 12)
+Score   : ${score} / ${total}
 Grade   : A+
 Date    : ${dateStr}
---------------------------------`;
+--------------------------------
+   Thermal Printer Ready`;
 
         document.getElementById('roleContent').innerHTML = `
-            <p style="color: #69F0AE; text-align: center; font-weight: bold;">စာမေးပွဲ ဖြေဆိုပြီးစီးပါပြီ!</p>
-            <div class="receipt">${slip}</div>
+            <p style="color: #69F0AE; text-align: center; font-weight: bold; font-size: 16px;">စာမေးပွဲ ဖြေဆိုပြီးစီးပါပြီ!</p>
+            <div class="receipt printable-receipt">${slip}</div>
             <button onclick="window.print()" style="background-color: #69F0AE; color: #0A192F;">🖨️ 2-inch Thermal Printer ဖြင့် Print ထုတ်မည်</button>
             <button onclick="loadDashboard()" style="margin-top:10px;">ပင်မစာမျက်နှာသို့ ပြန်ရန်</button>
         `;
@@ -332,6 +493,7 @@ Date    : ${dateStr}
         document.getElementById('loginUser').value = '';
         document.getElementById('loginPass').value = '';
         document.getElementById('loginMsg').innerText = '';
+        document.getElementById('portalSub').innerText = 'SMART EXAMINATION SYSTEM';
         document.getElementById('dashboardSection').classList.add('hidden');
         document.getElementById('loginSection').classList.remove('hidden');
     }
