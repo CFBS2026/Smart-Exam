@@ -204,4 +204,43 @@ class DatabaseHelper {
 
     return await db.insert('Exams', row, conflictAlgorithm: ConflictAlgorithm.replace);
   }
+  // ၁။ ဖြေဆိုပြီး ရလဒ်ကို ExamResults Table သို့ သိမ်းဆည်းရန် function
+  Future<int> insertExamResult({
+    required String resultId,
+    required String examId,
+    required String studentId,
+    required String startTime,
+    required String submitTime,
+    required String durationTaken,
+    required int scoreObtained,
+    required int totalMarks,
+    required String gradeAchieved,
+  }) async {
+    final db = await database;
+
+    Map<String, dynamic> row = {
+      'result_id': resultId,
+      'exam_id': examId,
+      'student_id': studentId,
+      'start_time': startTime,
+      'submit_time': submitTime,
+      'duration_taken': durationTaken,
+      'score_obtained': scoreObtained,
+      'total_marks': totalMarks,
+      'grade_achieved': gradeAchieved,
+    };
+
+    return await db.insert('ExamResults', row, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  // ၂။ ကျောင်းသားတစ်ဦး၏ ဖြေဆိုပြီးစာရင်းများကို ထုတ်ယူရန် function
+  Future<List>> getStudentResults(String studentId) async {
+    final db = await database;
+    return await db.query(
+      'ExamResults',
+      where: 'student_id = ?',
+      whereArgs: [studentId],
+    );
+  }
+
 
