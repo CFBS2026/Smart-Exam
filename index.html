@@ -383,13 +383,13 @@ function dashboard(){
   root.innerHTML=`
    <div class="notice">
    ဆရာ/ဆရာမသည် Question Bank၊ OCR၊
-   စာမေးပွဲဖန်တီးခြင်းနှင့် Question File Export
-   ကိုသာ ဆောင်ရွက်နိုင်ပါသည်။
-   ကျောင်းသားအကောင့်ဖန်တီးခွင့် မရှိပါ။
+   စာမေးပွဲဖန်တီးခြင်းနှင့် Question File Export/Import
+   ကို ဆောင်ရွက်နိုင်ပါသည်။
    </div>
 
    <div class="grid">
     ${menu('📚','Question Bank',"showQuestionBank()")}
+    ${menu('📥','Question File Import',"showTeacherImport()")}
     ${menu('📝','စာမေးပွဲဖန်တီးရန်',"showCreateExam()")}
     ${menu('📋','စာမေးပွဲစာရင်း',"showExamList()")}
     ${menu('📤','Question File Export',"showExport()")}
@@ -760,8 +760,14 @@ async function runOCR(){
    }}
   );
 
+  let rawText = result.data.text;
+  let formattedText = rawText.split('\n')
+                           .map(line => line.trim())
+                           .filter(line => line.length > 0)
+                           .join('\n\n');
+
   $('qText').value=(
-   $('qText').value+'\n'+result.data.text
+   $('qText').value+'\n'+formattedText
   ).trim();
 
   $('ocrStatus').textContent=
@@ -853,6 +859,48 @@ function deleteQuestion(qid){
  save(KEY.questions,read(KEY.questions).filter(q=>q.id!==qid));
 
  drawQuestions();
+}
+
+/* ================= TEACHER QUESTION FILE IMPORT ================= */
+
+function showTeacherImport(){
+ if(currentUser.role!=='teacher')return;
+
+ $('dynamicView').innerHTML=`
+ <div class="box">
+ <h3>Question File Import (ဆရာ့အကောင့်အတွက်)</h3>
+ <input type="file" id="teacherPackageFile" accept=".json,application/json">
+ <button onclick="importTeacherQuestionFile()">Import လုပ်မည်</button>
+ <p class="notice">JSON ဖိုင်ကို ရွေးချယ်ပြီး Import လုပ်ခြင်းဖြင့် ဖိုင်ထဲပါမေးခွန်းများအားလုံး ဆရာ့ရဲ့ Question Bank ထဲသို့ တိုက်ရိုက်ရောက်ရှိသွားမည်ဖြစ်ပါသည်။</p>
+ </div>`;
+}
+
+function importTeacherQuestionFile(){
+ const file=$('teacherPackageFile').files[0];
+ if(!file)return alert('Question File (.json) ရွေးပါ။');
+
+ file.text().then(text=>{
+  const data=JSON.parse(text);
+  if(!data.exam||!data.exam.questions)
+  throw new Error('Invalid');
+
+  const exam=data.exam;
+  const questions=exam.questions;
+
+  const bank=read(KEY.questions);
+  
+  // ဆရာ့အကောင့်ပိုင်ရှင်အဖြစ် မေးခွန်းများကို Question Bank ထဲသို့ ပေါင်းထည့်ခြင်း
+  questions.forEach(q=>{
+   bank.push({
+    ...q,
+    owner: currentUser.user
+   });
+  });
+
+  save(KEY.questions,bank);
+  alert('မေးခွန်းများ Question Bank ထဲသို့ အောင်မြင်စွာ ဝင်ရောက်သွားပါပြီ။');
+  showQuestionBank();
+ }).catch(()=>alert('ဖိုင်ဖတ်ရှု၍ မရပါ။ မှန်ကန်သော JSON ဖိုင် ဟုတ်မဟုတ် စစ်ဆေးပါ။'));
 }
 
 /* ================= TEACHER EXAM CREATION ================= */
@@ -1490,7 +1538,7 @@ function submitExam(auto){
  a.student===currentUser.user
  );
 
- if(attempt){
+-if(attempt){
   attempt.status='completed';
   attempt.end=finish;
   attempt.answers=activeExam.answers;
@@ -1522,17 +1570,17 @@ function showResult(r){
 
  <div class="table-wrap">
  <table>
- <tr><th>အချက်အလက်</th><th>ရလဒ်</th></tr>
+ <tr><th>Information</th><th>Result</th></tr>
  <tr><td>Start Time</td><td>${esc(r.start)}</td></tr>
  <tr><td>Finish Time</td><td>${esc(r.end)}</td></tr>
  <tr><td>Duration</td><td>${r.duration} Minutes</td></tr>
  <tr>
- <td>ရမှတ်</td>
+ <td>Score</td>
  <td>${r.score} / ${r.total}</td>
  </tr>
  <tr>
  <td>Grade</td>
- <td>${r.manualPending?'Pending (ရေးဖြေစစ်ဆေးရန်ကျန်)':r.grade}</td>
+ <td>${r.manualPending?'Pending (Manual check required)':r.grade}</td>
  </tr>
  </table>
  </div>
