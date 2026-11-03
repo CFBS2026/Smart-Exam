@@ -191,14 +191,56 @@ let remainingSeconds=0;
 
 /* LOGIN */
 
-function handleLogin(){
-let u=document.getElementById("loginUser").value.trim();
-let p=document.getElementById("loginPass").value;
-let user=read(KEY.users).find(x=>x.user===u&&x.pass===p);
+function handleLogin() {
+    const msg = document.getElementById('loginMsg');
 
-if(!user){
-document.getElementById("loginMsg").textContent="Username သို့မဟုတ် Password မှားနေပါသည်။";
-return;
+    try {
+        const u = document.getElementById('loginUser').value.trim();
+        const p = document.getElementById('loginPass').value.trim();
+
+        if (!u || !p) {
+            msg.innerText = 'Username နှင့် Password ဖြည့်ပေးပါ။';
+            return;
+        }
+
+        let users = [];
+
+        try {
+            users = JSON.parse(localStorage.getItem('users') || '[]');
+        } catch (e) {
+            msg.innerText = 'အကောင့်ဒေတာ ဖတ်မရပါ။';
+            return;
+        }
+
+        if (!Array.isArray(users)) {
+            msg.innerText = 'အကောင့်စာရင်း ပုံစံမှားနေပါသည်။';
+            return;
+        }
+
+        const found = users.find(x =>
+            x.user === u && x.pass === p
+        );
+
+        if (!found) {
+            msg.innerText = 'Username သို့မဟုတ် Password မှားနေပါသည်။';
+            return;
+        }
+
+        currentUser = found;
+
+        document.getElementById('loginSection').classList.add('hidden');
+        document.getElementById('dashboardSection').classList.remove('hidden');
+
+        document.getElementById('welcomeText').innerText =
+            `မင်္ဂလာပါ၊ ${currentUser.name} (${currentUser.role.toUpperCase()})`;
+
+        msg.innerText = '';
+
+        loadDashboard();
+
+    } catch (error) {
+        msg.innerText = 'စနစ်အမှားရှိနေပါသည်။ ' + error.message;
+    }
 }
 
 currentUser=user;
