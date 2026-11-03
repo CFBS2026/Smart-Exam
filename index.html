@@ -91,21 +91,12 @@ th{color:var(--gold)}
 }
 .question{padding:13px;background:#25466F;margin:12px 0;border-radius:8px}
 .smallbtn{width:auto;padding:6px 9px;font-size:11px}
-.stat{background:#25466F;padding:12px;text-align:center;border-radius:8px}
-.stat strong{display:block;color:var(--gold);font-size:23px}
 .inline{display:flex;align-items:center;gap:8px}
 .inline input{width:auto}
 @media(max-width:500px){
  .container{padding:9px}
  .grid{gap:6px}
  .menu{padding:11px}
-}
-@media print{
- body{background:white;color:black}
- .container{background:white;color:black;border:0}
- body *{visibility:hidden}
- #printArea,#printArea *{visibility:visible}
- #printArea{position:absolute;top:0;left:0;width:100%;color:black;background:white}
 }
 </style>
 </head>
@@ -358,8 +349,6 @@ function dashboard(){
  if(currentUser.role==='principal'){
 
   $('portalSub').textContent='PRINCIPAL ACCOUNT MANAGEMENT';
-
-  const users=read(KEY.users);
 
   root.innerHTML=`
    <div class="notice">
@@ -644,6 +633,7 @@ function showQuestionBank(){
  $('dynamicView').innerHTML=`
  <div class="box">
  <h3>Question Bank</h3>
+ <input type="hidden" id="editQId" value="">
 
  <label>အတန်း</label>
  <select id="qGrade" onchange="updateQSubjects()">
@@ -697,7 +687,8 @@ function showQuestionBank(){
  <label>အမှတ်</label>
  <input id="qMark" type="number" min="1" value="1">
 
- <button onclick="saveQuestion()">မေးခွန်းသိမ်းမည်</button>
+ <button onclick="saveQuestion()" id="saveQBtn">မေးခွန်းသိမ်းမည်</button>
+ <button class="secondary hidden" id="cancelEditBtn" onclick="cancelEditQuestion()">ပြင်ဆင်ခြင်းရပ်ဆဲမည်</button>
  </div>
 
  <div class="box">
@@ -782,6 +773,7 @@ async function runOCR(){
 
 function saveQuestion(){
 
+ const editId=$('editQId').value;
  const grade=$('qGrade').value;
  const combo=upper(grade)?$('qCombo').value:'-';
  const subject=$('qSubject').value;
@@ -800,7 +792,7 @@ function saveQuestion(){
  return alert('သတ်မှတ်ထားသောဘာသာရပ်သာ ထည့်နိုင်ပါသည်။');
 
  const q={
-  id:newId(),grade,combo,subject,chapter,text,type,mark,
+  id:editId?editId:newId(),grade,combo,subject,chapter,text,type,mark,
   owner:currentUser.user
  };
 
@@ -827,10 +819,52 @@ function saveQuestion(){
  }
 
  const bank=read(KEY.questions);
- bank.push(q);
+ 
+ if(editId){
+  const idx=bank.findIndex(x=>x.id===editId);
+  if(idx>-1) bank[idx]=q;
+ }else{
+  bank.push(q);
+ }
+
  save(KEY.questions,bank);
 
  alert('Question Bank သိမ်းပြီးပါပြီ။');
+ showQuestionBank();
+}
+
+function editQuestion(qid){
+ const q=read(KEY.questions).find(x=>x.id===qid);
+ if(!q)return;
+
+ $('editQId').value=q.id;
+ $('qGrade').value=q.grade;
+ updateQSubjects();
+ if($('qCombo'))$('qCombo').value=q.combo||'Combination 1';
+ updateQSubjects();
+ $('qSubject').value=q.subject;
+ $('qChapter').value=q.chapter;
+ $('qType').value=q.type;
+ qTypeChange();
+ $('qText').value=q.text;
+ $('qMark').value=q.mark;
+
+ if(q.type==='mcq'){
+  $('qA').value=q.options[0]||'';
+  $('qB').value=q.options[1]||'';
+  $('qC').value=q.options[2]||'';
+  $('qD').value=q.options[3]||'';
+  $('qAnswer').value=q.answer||'A';
+ }else if(q.type!=='essay'){
+  $('qTextAnswer').value=q.answer||'';
+ }
+
+ $('saveQBtn').textContent='မေးခွန်းပြင်ဆင်သိမ်းမည်';
+ $('cancelEditBtn').classList.remove('hidden');
+ window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function cancelEditQuestion(){
  showQuestionBank();
 }
 
@@ -847,6 +881,7 @@ function drawQuestions(){
  <b>${i+1}. ${esc(q.grade)} / ${esc(q.subject)}</b>
  <p>${esc(q.text)}</p>
  <p class="muted">${esc(q.chapter)} | ${q.mark} မှတ်</p>
+ <button class="secondary smallbtn" onclick="editQuestion('${q.id}')">ပြင်ရန်</button>
  <button class="danger smallbtn" onclick="deleteQuestion('${q.id}')">ဖျက်ရန်</button>
  </div>
  `).join('')||'မေးခွန်းမရှိသေးပါ။';
@@ -889,7 +924,6 @@ function importTeacherQuestionFile(){
 
   const bank=read(KEY.questions);
   
-  // ဆရာ့အကောင့်ပိုင်ရှင်အဖြစ် မေးခွန်းများကို Question Bank ထဲသို့ ပေါင်းထည့်ခြင်း
   questions.forEach(q=>{
    bank.push({
     ...q,
@@ -1538,7 +1572,7 @@ function submitExam(auto){
  a.student===currentUser.user
  );
 
-if(attempt){
+ if(attempt){
   attempt.status='completed';
   attempt.end=finish;
   attempt.answers=activeExam.answers;
