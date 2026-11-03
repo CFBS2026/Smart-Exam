@@ -1,994 +1,1604 @@
-<!DOCTYPE html><html lang="my">
+<!DOCTYPE html>
+<html lang="my">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#0A192F">
-<title>CFBS Smart Examination System</title><style>
+<title>CFBS Smart Examination System</title>
+
+<style>
 :root{
---bg:#0A192F;
---card:#112240;
---sub:#1D3557;
---gold:#FFD700;
---white:#FFFFFF;
---muted:#8892B0;
---green:#69F0AE;
---red:#ff6b6b;
+ --navy:#0A192F;
+ --card:#112240;
+ --gold:#FFD700;
+ --white:#F5F7FA;
+ --muted:#A8B3CF;
+ --green:#28C78B;
+ --red:#E85D5D;
+ --blue:#25466F;
 }
 *{box-sizing:border-box}
 body{
-margin:0;padding:15px;
-background:var(--bg);color:var(--white);
-font-family:Arial,"Segoe UI",sans-serif;
+ margin:0;padding:10px;background:var(--navy);
+ color:var(--white);
+ font-family:Arial,"Pyidaungsu","Noto Sans Myanmar",sans-serif
 }
 .container{
-max-width:850px;margin:auto;padding:20px;
-background:var(--card);border:1px solid #806d2a;
-border-radius:16px;min-height:90vh;
+ max-width:950px;margin:auto;padding:15px;
+ background:var(--card);border:1px solid #927B27;
+ border-radius:14px;min-height:95vh
 }
-h2,h3,h4{color:var(--gold)}
+h2,h3{color:var(--gold)}
 h2{text-align:center;font-size:21px}
-.subtitle{text-align:center;color:var(--muted);font-size:12px;margin-bottom:20px}
+.subtitle{text-align:center;color:var(--muted);font-size:12px}
+.box{
+ background:#1D3557;padding:13px;
+ margin:12px 0;border-radius:9px;
+ border:1px solid #425879
+}
 label{display:block;margin-top:12px;font-size:14px}
 input,select,textarea{
-width:100%;padding:12px;margin-top:6px;
-background:var(--bg);color:white;
-border:1px solid var(--gold);border-radius:8px;
-font-size:15px;
+ width:100%;padding:11px;margin-top:5px;
+ background:var(--navy);color:white;
+ border:1px solid var(--gold);
+ border-radius:7px;font-size:14px
 }
+textarea{min-height:85px}
 button{
-width:100%;padding:12px;margin-top:10px;
-background:var(--gold);color:var(--bg);
-border:0;border-radius:8px;font-weight:bold;
-font-size:14px;cursor:pointer;
+ width:100%;padding:12px;margin-top:9px;
+ background:var(--gold);color:var(--navy);
+ border:0;border-radius:7px;font-weight:bold;
+ cursor:pointer
 }
-button:disabled{opacity:.5}
-button.danger{background:var(--red);color:white}
 button.secondary{background:#526581;color:white}
-button.green{background:var(--green)}
+button.danger{background:var(--red);color:white}
+button.green{background:var(--green);color:#082b1e}
+button:disabled{opacity:.4}
 .hidden{display:none!important}
 .grid{
-display:grid;grid-template-columns:repeat(2,1fr);
-gap:10px;margin:12px 0;
+ display:grid;grid-template-columns:repeat(2,1fr);
+ gap:9px;margin:12px 0
 }
 .menu{
-background:var(--sub);padding:17px 12px;
-border:1px solid #526581;border-radius:10px;
-cursor:pointer;
+ background:#25466F;padding:15px;
+ border-radius:9px;border:1px solid #617797;
+ cursor:pointer
 }
-.menu b{display:block;color:white;margin-bottom:5px}
-.menu small{color:var(--muted)}
-.box{
-background:var(--sub);padding:15px;
-border-radius:10px;margin:12px 0;
-border:1px solid rgba(255,215,0,.25);
-}
-.section{
-color:var(--gold);border-bottom:1px solid #526581;
-padding-bottom:7px;margin-top:20px;
-}
-table{width:100%;border-collapse:collapse;margin-top:12px;font-size:12px}
-th,td{border:1px solid #526581;padding:8px;text-align:left}
-th{color:var(--gold)}
-.table-wrap{overflow-x:auto}
-.option{
-display:flex;align-items:center;
-background:rgba(255,255,255,.04);
-padding:10px;border-radius:7px;margin:7px 0;
-}
-.option input{width:20px;margin:0 10px 0 0}
-.option label{margin:0;flex:1}
-.timer{
-position:sticky;top:0;background:#FFD700;
-color:#0A192F;padding:12px;text-align:center;
-font-size:22px;font-weight:bold;border-radius:8px;
-z-index:5;
+.menu b{display:block;color:white}
+.menu small{color:#c6d3e6}
+.notice{
+ background:#0A3150;padding:11px;
+ border-radius:8px;color:#dceaff;
+ font-size:12px;line-height:1.7
 }
 .muted{color:var(--muted);font-size:12px}
-.stat{
-background:#1D3557;padding:12px;border-radius:8px;
-text-align:center;
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{padding:8px;border:1px solid #526581;text-align:left}
+th{color:var(--gold)}
+.option{
+ display:flex;gap:10px;align-items:center;
+ background:#112240;padding:10px;
+ border-radius:7px;margin:7px 0
 }
-.stat strong{display:block;font-size:22px;color:var(--gold)}
+.option input{width:auto;margin:0}
+.option label{margin:0}
+.timer{
+ background:var(--gold);color:var(--navy);
+ font-size:22px;font-weight:bold;
+ text-align:center;padding:12px;
+ border-radius:8px;position:sticky;top:0
+}
+.question{padding:13px;background:#25466F;margin:12px 0;border-radius:8px}
+.smallbtn{width:auto;padding:6px 9px;font-size:11px}
+.stat{background:#25466F;padding:12px;text-align:center;border-radius:8px}
+.stat strong{display:block;color:var(--gold);font-size:23px}
+.inline{display:flex;align-items:center;gap:8px}
+.inline input{width:auto}
 @media(max-width:500px){
-.container{padding:13px}
-.grid{gap:7px}
-.menu{padding:13px 8px}
-table{font-size:11px}
+ .container{padding:9px}
+ .grid{gap:6px}
+ .menu{padding:11px}
 }
 @media print{
-body{background:white;color:black}
-body *{visibility:hidden}
-#printArea,#printArea *{visibility:visible}
-#printArea{position:absolute;left:0;top:0;width:100%;color:black;background:white}
+ body{background:white;color:black}
+ .container{background:white;color:black;border:0}
+ body *{visibility:hidden}
+ #printArea,#printArea *{visibility:visible}
+ #printArea{position:absolute;top:0;left:0;width:100%;color:black;background:white}
 }
-</style></head><body>
-<div class="container"><h2>🦉 CHINDWIN FUTURE BRIGHT SCHOOL</h2>
-<div class="subtitle" id="portalSub">SMART EXAMINATION SYSTEM</div><!-- LOGIN --><div id="loginSection">
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<h2>👑 CHINDWIN FUTURE BRIGHT SCHOOL</h2>
+<div class="subtitle" id="portalSub">
+SMART EXAMINATION SYSTEM
+</div>
+
+<!-- LOGIN -->
+<section id="loginSection">
 <div class="box">
-<h3 style="text-align:center">အကောင့်ဝင်ရန်</h3><label>Username</label>
+<h3 style="text-align:center">အကောင့်ဝင်ရန်</h3>
+
+<label>Username</label>
 <input id="loginUser" autocomplete="username">
 
 <label>Password</label>
 <input id="loginPass" type="password" autocomplete="current-password">
 
-<button onclick="handleLogin()">ဝင်မည် (LOGIN)</button>
+<button onclick="handleLogin()">အကောင့်ဝင်မည်</button>
 
-<p id="loginMsg" style="color:#ff6b6b;text-align:center"></p>
+<p id="loginMsg" style="color:#ff7777;text-align:center"></p>
+
+<div class="notice">
+စမ်းသပ်အကောင့်များ<br>
+ကျောင်းအုပ် — principal / 123<br>
+ဆရာ — teacher / 123<br>
+ကျောင်းသား — student / 123
 </div>
-</div><!-- DASHBOARD --><div id="dashboardSection" class="hidden">
+</div>
+</section>
+
+<!-- DASHBOARD -->
+<section id="dashboardSection" class="hidden">
 <h3 id="welcomeText" style="text-align:center"></h3>
 <div id="roleContent"></div>
-<button class="danger" onclick="logout()">Logout / ထွက်ရန်</button>
-</div></div><script>
-/* =========================================
-   CFBS SMART EXAMINATION SYSTEM
-   Offline single-device prototype
-========================================= */
+<button class="danger" onclick="logout()">Logout</button>
+</section>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+<script>
+'use strict';
+
+/* ================= DATA ================= */
 
 const KEY={
-users:"cfbs_users_v1",
-questions:"cfbs_questions_v1",
-exams:"cfbs_exams_v1",
-results:"cfbs_results_v1",
-attempts:"cfbs_attempts_v1"
+ users:'cfbs_users_v10',
+ questions:'cfbs_questions_v10',
+ exams:'cfbs_exams_v10',
+ attempts:'cfbs_attempts_v10',
+ results:'cfbs_results_v10'
 };
 
-const grades=[
-"KG","Grade 1","Grade 2","Grade 3","Grade 4","Grade 5",
-"Grade 6","Grade 7","Grade 8","Grade 9",
-"Grade 10","Grade 11","Grade 12"
+const GRADES=[
+ 'KG','Grade 1','Grade 2','Grade 3','Grade 4',
+ 'Grade 5','Grade 6','Grade 7','Grade 8','Grade 9',
+ 'Grade 10','Grade 11','Grade 12'
 ];
 
-const examTypes=[
-"ပထမလပတ်",
-"ဒုတိယလပတ်",
-"တတိယလပတ်",
-"စတုတ္ထလပတ်",
-"အတန်းတင်စာမေးပွဲ"
+const EXAMS=[
+ 'ပထမလပတ်',
+ 'ဒုတိယလပတ်',
+ 'တတိယလပတ်',
+ 'စတုတ္ထလပတ်',
+ 'အတန်းတင်စာမေးပွဲ'
 ];
 
-const combinations={
-"Combination 1":["မြန်မာစာ","အင်္ဂလိပ်စာ","သင်္ချာ","ဓာတုဗေဒ","ရူပဗေဒ","ဇီဝဗေဒ"],
-"Combination 2":["မြန်မာစာ","အင်္ဂလိပ်စာ","သင်္ချာ","ဓာတုဗေဒ","ရူပဗေဒ","ဘောဂဗေဒ"],
-"Combination 3":["မြန်မာစာ","အင်္ဂလိပ်စာ","သင်္ချာ","ပထဝီဝင်","သမိုင်း","ဘောဂဗေဒ"]
+const COMBINATIONS={
+ 'Combination 1':[
+ 'မြန်မာစာ','အင်္ဂလိပ်စာ','သင်္ချာ',
+ 'ဓာတုဗေဒ','ရူပဗေဒ','ဇီဝဗေဒ'
+ ],
+ 'Combination 2':[
+ 'မြန်မာစာ','အင်္ဂလိပ်စာ','သင်္ချာ',
+ 'ဓာတုဗေဒ','ရူပဗေဒ','ဘောဂဗေဒ'
+ ],
+ 'Combination 3':[
+ 'မြန်မာစာ','အင်္ဂလိပ်စာ','သင်္ချာ',
+ 'ပထဝီဝင်','သမိုင်း','ဘောဂဗေဒ'
+ ]
 };
 
-function subjects(grade,combo){
-if(["KG","Grade 1","Grade 2","Grade 3","Grade 4","Grade 5"].includes(grade))
-return ["မြန်မာစာ","အင်္ဂလိပ်စာ","သင်္ချာ","လူမှုရေး","သိပ္ပံ"];
+const LOWER=[
+ 'မြန်မာစာ','အင်္ဂလိပ်စာ','သင်္ချာ',
+ 'လူမှုရေး','သိပ္ပံ'
+];
 
-if(["Grade 6","Grade 7","Grade 8","Grade 9"].includes(grade))
-return ["မြန်မာစာ","အင်္ဂလိပ်စာ","သင်္ချာ","ပထဝီဝင်","သမိုင်း","သိပ္ပံ"];
+const MIDDLE=[
+ 'မြန်မာစာ','အင်္ဂလိပ်စာ','သင်္ချာ',
+ 'ပထဝီဝင်','သမိုင်း','သိပ္ပံ'
+];
 
-return combinations[combo]||combinations["Combination 1"];
+function $(id){return document.getElementById(id)}
+
+function read(key){
+ try{return JSON.parse(localStorage.getItem(key))||[]}
+ catch(e){return []}
 }
 
-function read(key,def=[]){
-try{return JSON.parse(localStorage.getItem(key))||def}
-catch(e){return def}
-}
 function save(key,data){
-localStorage.setItem(key,JSON.stringify(data));
+ localStorage.setItem(key,JSON.stringify(data));
 }
 
-if(!localStorage.getItem(KEY.users)){
-save(KEY.users,[
-{user:"principal",pass:"123",role:"principal",name:"ကျောင်းအုပ်ကြီး"},
-{user:"teacher",pass:"123",role:"teacher",name:"ဆရာ/မ",grade:"Grade 6",subject:"သင်္ချာ"},
-{user:"student",pass:"123",role:"student",name:"မောင်ကျောင်းသား",grade:"Grade 6",roll:"CFBS-001"}
-]);
-}
-if(!localStorage.getItem(KEY.questions))save(KEY.questions,[]);
-if(!localStorage.getItem(KEY.exams))save(KEY.exams,[]);
-if(!localStorage.getItem(KEY.results))save(KEY.results,[]);
-if(!localStorage.getItem(KEY.attempts))save(KEY.attempts,[]);
-
-let currentUser=null;
-let activeExam=null;
-let timerInterval=null;
-let examStart=0;
-let remainingSeconds=0;
-
-/* LOGIN */
-
-function handleLogin() {
-    const msg = document.getElementById('loginMsg');
-
-    try {
-        const u = document.getElementById('loginUser').value.trim();
-        const p = document.getElementById('loginPass').value.trim();
-
-        if (!u || !p) {
-            msg.innerText = 'Username နှင့် Password ဖြည့်ပေးပါ။';
-            return;
-        }
-
-        let users = [];
-
-        try {
-            users = JSON.parse(localStorage.getItem('users') || '[]');
-        } catch (e) {
-            msg.innerText = 'အကောင့်ဒေတာ ဖတ်မရပါ။';
-            return;
-        }
-
-        if (!Array.isArray(users)) {
-            msg.innerText = 'အကောင့်စာရင်း ပုံစံမှားနေပါသည်။';
-            return;
-        }
-
-        const found = users.find(x =>
-            x.user === u && x.pass === p
-        );
-
-        if (!found) {
-            msg.innerText = 'Username သို့မဟုတ် Password မှားနေပါသည်။';
-            return;
-        }
-
-        currentUser = found;
-
-        document.getElementById('loginSection').classList.add('hidden');
-        document.getElementById('dashboardSection').classList.remove('hidden');
-
-        document.getElementById('welcomeText').innerText =
-            `မင်္ဂလာပါ၊ ${currentUser.name} (${currentUser.role.toUpperCase()})`;
-
-        msg.innerText = '';
-
-        loadDashboard();
-
-    } catch (error) {
-        msg.innerText = 'စနစ်အမှားရှိနေပါသည်။ ' + error.message;
-    }
-}
-
-currentUser=user;
-document.getElementById("loginSection").classList.add("hidden");
-document.getElementById("dashboardSection").classList.remove("hidden");
-document.getElementById("welcomeText").textContent="မင်္ဂလာပါ "+user.name;
-loadDashboard();
-}
-
-function logout(){
-if(timerInterval){
-alert("စာမေးပွဲဖြေနေစဉ် Logout လုပ်၍မရပါ။");
-return;
-}
-currentUser=null;
-document.getElementById("dashboardSection").classList.add("hidden");
-document.getElementById("loginSection").classList.remove("hidden");
-document.getElementById("loginUser").value="";
-document.getElementById("loginPass").value="";
-}
-
-/* DASHBOARD */
-
-function loadDashboard(){
-let content=document.getElementById("roleContent");
-content.innerHTML="";
-
-if(currentUser.role==="principal"){
-document.getElementById("portalSub").textContent="PRINCIPAL ADMINISTRATION";
-
-content.innerHTML=`
-<div class="grid">
-<div class="stat"><strong>${read(KEY.users).filter(x=>x.role==="student").length}</strong>Students</div>
-<div class="stat"><strong>${read(KEY.users).filter(x=>x.role==="teacher").length}</strong>Teachers</div>
-<div class="stat"><strong>${read(KEY.exams).length}</strong>Examinations</div>
-<div class="stat"><strong>${read(KEY.questions).length}</strong>Questions</div>
-</div>
-
-<h3>Principal Dashboard</h3>
-<div class="grid">
-${menu("👥","Student Management","studentMgmt")}
-${menu("🎓","Teacher Management","teacherMgmt")}
-${menu("📖","Question Bank","questions")}
-${menu("✍️","Create Examination","createExam")}
-${menu("📋","Examination List","exams")}
-${menu("📊","Results & Reports","reports")}
-${menu("💾","Backup / Restore","backup")}
-</div>
-<div id="dynamicView"></div>`;
-}
-else if(currentUser.role==="teacher"){
-document.getElementById("portalSub").textContent="TEACHER PORTAL";
-
-content.innerHTML=`
-<div class="box">
-<b>တာဝန်အတန်း:</b> ${esc(currentUser.grade||"မသတ်မှတ်ရသေး")}
-<br><b>ဘာသာရပ်:</b> ${esc(currentUser.subject||"မသတ်မှတ်ရသေး")}
-</div>
-<div class="grid">
-${menu("👥","Students","studentMgmt")}
-${menu("📖","Question Bank","questions")}
-${menu("✍️","Create Examination","createExam")}
-${menu("📋","Examinations","exams")}
-${menu("📊","Exam Results","reports")}
-${menu("💾","Backup","backup")}
-</div>
-<div id="dynamicView"></div>`;
-}
-else{
-document.getElementById("portalSub").textContent="STUDENT EXAM PORTAL";
-studentDashboard(content);
-}
-}
-
-function menu(icon,title,type){
-return `<div class="menu" onclick="renderView('${type}')">
-<b>${icon} ${title}</b><small>ဖွင့်ရန် နှိပ်ပါ</small></div>`;
-}
-
-/* STUDENT DASHBOARD */
-
-function studentDashboard(content){
-let u=currentUser;
-let sub=subjects(u.grade,u.combo);
-
-content.innerHTML=`
-<div class="box">
-<h3>ကျောင်းသားအချက်အလက်</h3>
-<p>အမည်: ${esc(u.name)}</p>
-<p>အတန်း: ${esc(u.grade)}</p>
-<p>Student ID: ${esc(u.roll||"-")}</p>
-<p>ဘာသာတွဲ: ${esc(u.combo||"-")}</p>
-</div>
-
-<div class="box">
-<h3>စာမေးပွဲများ</h3>
-<div id="studentExamList"></div>
-</div>
-
-<div class="grid">
-${menu("📊","My Results","myResults")}
-${menu("👤","My Profile","profile")}
-</div>
-<div id="dynamicView"></div>`;
-
-let exams=read(KEY.exams).filter(e=>
-e.grade===u.grade&&sub.includes(e.subject)&&e.active!==false
-);
-
-let attempts=read(KEY.attempts);
-let html="";
-
-if(!exams.length)html="<p>စာမေးပွဲ မရှိသေးပါ။</p>";
-
-exams.forEach(e=>{
-let done=attempts.some(a=>a.examId===e.id&&a.student===u.user);
-html+=`
-<div class="box">
-<b>${esc(e.title)}</b>
-<p>${esc(e.subject)} | ${esc(e.type)}</p>
-<p>အမှတ်: ${e.total} | အချိန်: ${e.minutes} မိနစ်</p>
-<button ${done?"disabled":""} onclick="attemptQuiz('${e.id}')">
-${done?"ဖြေဆိုပြီးပါပြီ":"🚀 Attempt Quiz"}
-</button>
-</div>`;
-});
-
-document.getElementById("studentExamList").innerHTML=html;
-}
-
-/* VIEW ROUTER */
-
-function renderView(type){
-let view=document.getElementById("dynamicView");
-if(!view)return;
-
-if(type==="studentMgmt")studentManagement(view);
-if(type==="teacherMgmt")teacherManagement(view);
-if(type==="questions")questionManagement(view);
-if(type==="createExam")createExamView(view);
-if(type==="exams")examListView(view);
-if(type==="reports"||type==="myResults")resultsView(view,type);
-if(type==="backup")backupView(view);
-if(type==="profile")profileView(view);
-}
-
-/* STUDENT MANAGEMENT */
-
-function studentManagement(view){
-if(currentUser.role!=="principal"&&currentUser.role!=="teacher"){
-view.innerHTML="ခွင့်ပြုချက်မရှိပါ။";return;
-}
-
-let list=read(KEY.users).filter(u=>u.role==="student");
-
-view.innerHTML=`
-<div class="box">
-<h3>ကျောင်းသားအကောင့်ဖန်တီးရန်</h3>
-<label>Username</label><input id="su">
-<label>Password</label><input id="sp">
-<label>အမည်</label><input id="sn">
-<label>Student ID</label><input id="sr">
-<label>အတန်း</label>
-<select id="sg">${gradeOptions()}</select>
-<label>Grade 10–12 ဘာသာတွဲ</label>
-<select id="sc">
-<option value="">မသတ်မှတ်ပါ</option>
-${Object.keys(combinations).map(c=>`<option>${c}</option>`).join("")}
-</select>
-<button onclick="createStudent()">အကောင့်ဖန်တီးမည်</button>
-</div>
-<h3>ကျောင်းသားစာရင်း (${list.length})</h3>
-<div class="table-wrap"><table>
-<tr><th>အမည်</th><th>Username</th><th>အတန်း</th><th>လုပ်ဆောင်ချက်</th></tr>
-${list.map(u=>`<tr>
-<td>${esc(u.name)}</td><td>${esc(u.user)}</td><td>${esc(u.grade)}</td>
-<td><button class="danger" onclick="deleteUser('${u.user}')">ဖျက်</button></td>
-</tr>`).join("")}
-</table></div>`;
-}
-
-function createStudent(){
-let u=document.getElementById("su").value.trim();
-let p=document.getElementById("sp").value;
-let n=document.getElementById("sn").value.trim();
-let r=document.getElementById("sr").value.trim();
-let g=document.getElementById("sg").value;
-let c=document.getElementById("sc").value;
-
-if(!u||!p||!n||!r){alert("အချက်အလက်အားလုံး ဖြည့်ပါ။");return;}
-let users=read(KEY.users);
-if(users.some(x=>x.user===u)){alert("Username ရှိပြီးသားပါ။");return;}
-
-users.push({user:u,pass:p,name:n,roll:r,grade:g,combo:c,role:"student"});
-save(KEY.users,users);
-alert("ကျောင်းသားအကောင့် ဖန်တီးပြီးပါပြီ။");
-renderView("studentMgmt");
-}
-
-/* TEACHER MANAGEMENT */
-
-function teacherManagement(view){
-if(currentUser.role!=="principal"){
-view.innerHTML="Principal သာ ဆရာ/မအကောင့် ဖန်တီးနိုင်ပါသည်။";return;
-}
-
-let list=read(KEY.users).filter(u=>u.role==="teacher");
-
-view.innerHTML=`
-<div class="box">
-<h3>ဆရာ/မအကောင့်ဖန်တီးရန်</h3>
-<label>Username</label><input id="tu">
-<label>Password</label><input id="tp">
-<label>အမည်</label><input id="tn">
-<label>တာဝန်အတန်း</label><select id="tg">${gradeOptions()}</select>
-<label>တာဝန်ဘာသာရပ်</label><input id="ts">
-<button onclick="createTeacher()">ဖန်တီးမည်</button>
-</div>
-<h3>ဆရာ/မစာရင်း</h3>
-<div class="table-wrap"><table>
-<tr><th>အမည်</th><th>အတန်း</th><th>ဘာသာရပ်</th><th>လုပ်ဆောင်ချက်</th></tr>
-${list.map(t=>`<tr><td>${esc(t.name)}</td><td>${esc(t.grade)}</td>
-<td>${esc(t.subject)}</td><td><button class="danger" onclick="deleteUser('${t.user}')">ဖျက်</button></td></tr>`).join("")}
-</table></div>`;
-}
-
-function createTeacher(){
-let u=document.getElementById("tu").value.trim();
-let p=document.getElementById("tp").value;
-let n=document.getElementById("tn").value.trim();
-let g=document.getElementById("tg").value;
-let s=document.getElementById("ts").value.trim();
-
-if(!u||!p||!n||!s){alert("အချက်အလက်ဖြည့်ပါ။");return;}
-let users=read(KEY.users);
-if(users.some(x=>x.user===u)){alert("Username ရှိပြီးသားပါ။");return;}
-users.push({user:u,pass:p,name:n,grade:g,subject:s,role:"teacher"});
-save(KEY.users,users);
-alert("ဆရာ/မအကောင့် ဖန်တီးပြီးပါပြီ။");
-renderView("teacherMgmt");
-}
-
-function deleteUser(username){
-if(!confirm("ဤအကောင့်ကို ဖျက်မှာ သေချာပါသလား။"))return;
-save(KEY.users,read(KEY.users).filter(u=>u.user!==username));
-renderView(currentUser.role==="principal"?"studentMgmt":"studentMgmt");
-}
-
-/* QUESTION BANK */
-
-function questionManagement(view){
-let all=read(KEY.questions);
-let teacher=currentUser.role==="teacher";
-
-view.innerHTML=`
-<div class="box">
-<h3>မေးခွန်းအသစ်ထည့်ရန်</h3>
-<label>အတန်း</label>
-<select id="qg" onchange="questionSubjects()">
-${gradeOptions(teacher?currentUser.grade:null)}
-</select>
-<label>ဘာသာရပ်</label><select id="qs"></select>
-<label>Chapter</label><input id="qc" placeholder="ဥပမာ Chapter 1">
-<label>မေးခွန်း</label><textarea id="qq" rows="3"></textarea><label>Option A</label><input id="qa">
-<label>Option B</label><input id="qb">
-<label>Option C</label><input id="qcc">
-<label>Option D</label><input id="qd">
-<label>အဖြေမှန်</label>
-<select id="qans">
-
-<option>A</option><option>B</option><option>C</option><option>D</option>
-</select>
-<button onclick="saveQuestion()">မေးခွန်းသိမ်းမည်</button>
-</div>
-<h3>မေးခွန်းစာရင်း (${all.length})</h3>
-<div id="questionList"></div>`;questionSubjects();
-showQuestions();
-}
-
-function questionSubjects(){
-let g=document.getElementById("qg");
-let s=document.getElementById("qs");
-if(!g||!s)return;
-let list=subjects(g.value);
-s.innerHTML=list.map(x=>"<option>${x}</option>").join("");
-}
-
-function saveQuestion(){
-let g=document.getElementById("qg").value;
-let s=document.getElementById("qs").value;
-let c=document.getElementById("qc").value.trim();
-let q=document.getElementById("qq").value.trim();
-let a=document.getElementById("qa").value.trim();
-let b=document.getElementById("qb").value.trim();
-let cc=document.getElementById("qcc").value.trim();
-let d=document.getElementById("qd").value.trim();
-let ans=document.getElementById("qans").value;
-
-if(!q||!c||!a||!b||!cc||!d){alert("အချက်အလက်အားလုံး ဖြည့်ပါ။");return;}
-
-let qs=read(KEY.questions);
-qs.push({id:makeId(),grade:g,subject:s,chapter:c,q,optA:a,optB:b,optC:cc,optD:d,ans,owner:currentUser.user});
-save(KEY.questions,qs);
-alert("မေးခွန်း သိမ်းဆည်းပြီးပါပြီ။");
-renderView("questions");
-}
-
-function showQuestions(){
-let qs=read(KEY.questions);
-let list=document.getElementById("questionList");
-if(!list)return;
-list.innerHTML=qs.map((q,i)=>`
-
-<div class="box">
-<b>${i+1}. ${esc(q.grade)} / ${esc(q.subject)} / ${esc(q.chapter)}</b>
-<p>${esc(q.q)}</p>
-<p class="muted">A. ${esc(q.optA)} | B. ${esc(q.optB)} | C. ${esc(q.optC)} | D. ${esc(q.optD)}</p>
-<p>အဖြေမှန်: ${esc(q.ans)}</p>
-<button class="danger" onclick="deleteQuestion('${q.id}')">ဖျက်မည်</button>
-</div>`).join("");
-}function deleteQuestion(id){
-if(!confirm("မေးခွန်းဖျက်မလား။"))return;
-save(KEY.questions,read(KEY.questions).filter(q=>q.id!==id));
-renderView("questions");
-}
-
-/* CREATE EXAM */
-
-function createExamView(view){
-let g=currentUser.role==="teacher"?currentUser.grade:"Grade 6";
-view.innerHTML=`
-
-<div class="box">
-<h3>စာမေးပွဲဖန်တီးရန်</h3>
-<label>စာမေးပွဲအမည်</label><input id="etitle" placeholder="ဥပမာ ပထမလပတ်စာမေးပွဲ">
-<label>အတန်း</label>
-<select id="eg" onchange="examSubjects()">${gradeOptions(currentUser.role==="teacher"?currentUser.grade:null)}</select>
-<label>ဘာသာရပ်</label><select id="es"></select>
-<label>စာမေးပွဲအမျိုးအစား</label>
-<select id="etype">${examTypes.map(x=>`<option>${x}</option>`).join("")}</select><label>ပါဝင်မည့်အခန်းများ (Chapter များကို ရွေးပါ)</label>
-
-<div id="chapterChoices" class="box">မေးခွန်းဘဏ်မှ အခန်းများကို ဖော်ပြပါမည်။</div><label>စုစုပေါင်းရမှတ်</label>
-<select id="emarks"><option>25</option><option>50</option><option>100</option></select>
-
-<label>ဖြေဆိုချိန်</label>
-<select id="eminutes">
-
-<option value="45">၄၅ မိနစ်</option>
-<option value="60">၁ နာရီ</option>
-<option value="120">၂ နာရီ</option>
-</select><label>မေးခွန်းအရေအတွက်</label>
-<select id="ecount">
-
-<option>25</option><option>50</option><option>100</option>
-</select><button onclick="createExam()">စာမေးပွဲဖန်တီးမည်</button>
-
-</div>`;examSubjects();
-}
-
-function examSubjects(){
-let g=document.getElementById("eg");
-let s=document.getElementById("es");
-if(!g||!s)return;
-s.innerHTML=subjects(g.value,currentUser.combo).map(x=>"<option>${x}</option>").join("");
-s.onchange=updateChapterChoices;
-g.onchange=()=>{examSubjects();updateChapterChoices();};
-updateChapterChoices();
-}
-
-function updateChapterChoices(){
-let g=document.getElementById("eg").value;
-let s=document.getElementById("es").value;
-let qs=read(KEY.questions).filter(q=>q.grade===g&&q.subject===s);
-let chapters=[...new Set(qs.map(q=>q.chapter))];
-
-document.getElementById("chapterChoices").innerHTML=chapters.length?
-chapters.map(c=>"<label><input type="checkbox" class="chapterCheck" value="${esc(c)}" checked style="width:auto"> ${esc(c)}</label>").join("")
-:"ဤဘာသာရပ်အတွက် မေးခွန်းမရှိသေးပါ။";
-}
-
-function createExam(){
-let title=document.getElementById("etitle").value.trim();
-let grade=document.getElementById("eg").value;
-let subject=document.getElementById("es").value;
-let type=document.getElementById("etype").value;
-let total=Number(document.getElementById("emarks").value);
-let minutes=Number(document.getElementById("eminutes").value);
-let count=Number(document.getElementById("ecount").value);
-let chapters=[...document.querySelectorAll(".chapterCheck:checked")].map(x=>x.value);
-
-if(!title||!chapters.length){alert("စာမေးပွဲအမည်နှင့် Chapter ရွေးချယ်ပါ။");return;}
-
-let qs=read(KEY.questions).filter(q=>
-q.grade===grade&&q.subject===subject&&chapters.includes(q.chapter)
-);
-
-if(qs.length<count){
-alert("ရွေးထားသော Chapter များတွင် မေးခွန်း ${qs.length} ပုဒ်သာ ရှိပါသည်။ ${count} ပုဒ်လိုအပ်ပါသည်။");
-return;
-}
-
-let exam={
-id:makeId(),title,grade,subject,type,total,minutes,count,
-chapters,active:true,owner:currentUser.user
-};
-
-let exams=read(KEY.exams);
-exams.push(exam);
-save(KEY.exams,exams);
-alert("စာမေးပွဲဖန်တီးပြီးပါပြီ။");
-renderView("exams");
-}
-
-/* EXAM LIST */
-
-function examListView(view){
-let exams=read(KEY.exams);
-view.innerHTML=`
-
-<h3>စာမေးပွဲစာရင်း</h3>
-${exams.map(e=>`
-<div class="box">
-<b>${esc(e.title)}</b>
-<p>${esc(e.grade)} | ${esc(e.subject)}</p>
-<p>${esc(e.type)} | ${e.total} မှတ် | ${e.minutes} မိနစ်</p>
-<p>Chapter: ${e.chapters.map(esc).join(", ")}</p>
-<button class="secondary" onclick="toggleExam('${e.id}')">${e.active?"ပိတ်ရန်":"ပြန်ဖွင့်ရန်"}</button>
-<button class="danger" onclick="deleteExam('${e.id}')">ဖျက်ရန်</button>
-</div>`).join("")}`;
-}function toggleExam(id){
-let es=read(KEY.exams);
-let e=es.find(x=>x.id===id);
-if(e)e.active=!e.active;
-save(KEY.exams,es);
-renderView("exams");
-}
-
-function deleteExam(id){
-if(!confirm("စာမေးပွဲဖျက်မလား။"))return;
-save(KEY.exams,read(KEY.exams).filter(e=>e.id!==id));
-renderView("exams");
-}
-
-/* ATTEMPT QUIZ */
-
-function attemptQuiz(id){
-let exam=read(KEY.exams).find(e=>e.id===id);
-if(!exam||!exam.active)return;
-
-let attempts=read(KEY.attempts);
-if(attempts.some(a=>a.examId===id&&a.student===currentUser.user)){
-alert("ဤစာမေးပွဲကို ဖြေဆိုပြီးပါပြီ။");
-return;
-}
-
-let qs=read(KEY.questions).filter(q=>
-q.grade===exam.grade&&q.subject===exam.subject&&exam.chapters.includes(q.chapter)
-);
-
-qs=shuffle(qs).slice(0,exam.count);
-
-if(qs.length!==exam.count){
-alert("မေးခွန်းအရေအတွက် မပြည့်စုံပါ။");
-return;
-}
-
-activeExam={exam,questions:qs,answers:{},start:Date.now()};
-examStart=Date.now();
-remainingSeconds=exam.minutes*60;
-
-save(KEY.attempts,[...attempts,{
-examId:id,student:currentUser.user,status:"started",
-start:examStart
-}]);
-
-renderQuiz();
-}
-
-function renderQuiz(){
-let html=`
-
-<div class="box">
-<div class="timer" id="timer">00:00</div>
-<h3>${esc(activeExam.exam.title)}</h3>
-<p>${esc(activeExam.exam.subject)} | ${activeExam.exam.total} မှတ်</p>
-<div id="quizQuestions"></div>
-<button class="green" onclick="finishExam(false)">စာမေးပွဲတင်သွင်းမည် (SUBMIT)</button>
-</div>`;document.getElementById("roleContent").innerHTML=html;
-
-let area=document.getElementById("quizQuestions");
-
-area.innerHTML=activeExam.questions.map((q,i)=>`
-
-<div class="box">
-<b>မေးခွန်း ${i+1}။</b>
-<p>${esc(q.q)}</p>
-${["A","B","C","D"].map((v)=>`
-<div class="option">
-<input type="radio" name="q${i}" value="${v}"
-onchange="activeExam.answers['${q.id}']='${v}'">
-<label>${v}. ${esc(q["opt"+v])}</label>
-</div>`).join("")}
-</div>`).join("");startTimer();
-}
-
-function startTimer(){
-clearInterval(timerInterval);
-updateTimer();
-timerInterval=setInterval(()=>{
-remainingSeconds--;
-updateTimer();
-if(remainingSeconds<=0){
-clearInterval(timerInterval);
-timerInterval=null;
-finishExam(true);
-}
-},1000);
-}
-
-function updateTimer(){
-let m=Math.floor(remainingSeconds/60);
-let s=remainingSeconds%60;
-let el=document.getElementById("timer");
-if(el)el.textContent=
-String(m).padStart(2,"0")+":"+String(s).padStart(2,"0");
-}
-
-/* SUBMIT */
-
-function finishExam(auto){
-if(!activeExam)return;
-if(!auto&&!confirm("အဖြေများကို နောက်ဆုံးတင်သွင်းမည်မှာ သေချာပါသလား။"))return;
-
-clearInterval(timerInterval);
-timerInterval=null;
-
-let end=Date.now();
-let duration=Math.max(0,Math.floor((end-examStart)/1000));
-let score=0;
-
-activeExam.questions.forEach(q=>{
-if(activeExam.answers[q.id]===q.ans)
-score+=activeExam.exam.total/activeExam.questions.length;
-});
-
-score=Math.round(score100)/100;
-let total=activeExam.exam.total;
-let percent=score/total100;
-
-let grade=percent>=80?"A":percent>=60?"B":percent>=40?"C":"D";
-
-let result={
-id:makeId(),
-student:currentUser.name,
-username:currentUser.user,
-roll:currentUser.roll||"",
-gradeName:currentUser.grade,
-examId:activeExam.exam.id,
-examType:activeExam.exam.type,
-subject:activeExam.exam.subject,
-title:activeExam.exam.title,
-start:new Date(examStart).toLocaleString(),
-end:new Date(end).toLocaleString(),
-duration,
-score,total,percent:Math.round(percent*100)/100,
-grade
-};
-
-save(KEY.results,[...read(KEY.results),result]);
-
-let attempts=read(KEY.attempts);
-let a=attempts.find(x=>x.examId===activeExam.exam.id&&x.student===currentUser.user);
-if(a){a.status="completed";a.end=end;}
-save(KEY.attempts,attempts);
-
-activeExam=null;
-showResult(result,auto);
-}
-
-function showResult(r,auto){
-document.getElementById("roleContent").innerHTML=`
-
-<div class="box" id="printArea">
-<h3 style="text-align:center">CHINDWIN FUTURE BRIGHT SCHOOL</h3>
-<h3 style="text-align:center">စာမေးပွဲရလဒ်</h3>
-<p>ကျောင်းသားအမည်: ${esc(r.student)}</p>
-<p>အတန်း: ${esc(r.gradeName)}</p>
-<p>စာမေးပွဲ: ${esc(r.title)}</p>
-<p>ဘာသာရပ်: ${esc(r.subject)}</p>
-<div class="table-wrap">
-<table>
-<tr><th>အချက်အလက်</th><th>ရလဒ်</th></tr>
-<tr><td>စတင်ဖြေဆိုချိန်</td><td>${esc(r.start)}</td></tr>
-<tr><td>ဖြေဆိုပြီးချိန်</td><td>${esc(r.end)}</td></tr>
-<tr><td>ဖြေဆိုသည့်ကြာချိန်</td><td>${formatDuration(r.duration)}</td></tr>
-<tr><td>ရမှတ်</td><td>${r.score} / ${r.total}</td></tr>
-<tr><td>ရာခိုင်နှုန်း</td><td>${r.percent}%</td></tr>
-<tr><td>Grade</td><td><b>${r.grade}</b></td></tr>
-</table>
-</div>
-<p style="text-align:center">${auto?"အချိန်ပြည့်၍ အလိုအလျောက်တင်သွင်းပြီးပါပြီ။":"စာမေးပွဲအောင်မြင်စွာ တင်သွင်းပြီးပါပြီ။"}</p>
-</div>
-<button onclick="window.print()">Print / PDF ထုတ်ရန်</button>
-<button onclick="loadDashboard()">ပင်မစာမျက်နှာသို့ ပြန်ရန်</button>`;
-}/* RESULTS */
-
-function resultsView(view,type){
-let results=read(KEY.results);
-if(type==="myResults")results=results.filter(r=>r.username===currentUser.user);
-
-view.innerHTML=`
-
-<div class="box">
-<h3>📊 စာမေးပွဲရလဒ်များ</h3>
-<label>အတန်းစစ်ထုတ်ရန်</label>
-<select id="filterGrade" onchange="filterResults()">
-<option value="">အားလုံး</option>${gradeOptions()}
-</select>
-<label>ဘာသာရပ်စစ်ထုတ်ရန်</label>
-<select id="filterSubject" onchange="filterResults()">
-<option value="">အားလုံး</option>
-${[...new Set(results.map(r=>r.subject))].map(s=>`<option>${esc(s)}</option>`).join("")}
-</select>
-<div id="resultTable"></div>
-</div>`;
-window.currentResultType=type;
-filterResults();
-}function filterResults(){
-let type=window.currentResultType;
-let rs=read(KEY.results);
-if(type==="myResults")rs=rs.filter(r=>r.username===currentUser.user);
-
-let g=document.getElementById("filterGrade")?.value||"";
-let s=document.getElementById("filterSubject")?.value||"";
-
-rs=rs.filter(r=>(!g||r.gradeName===g)&&(!s||r.subject===s));
-
-document.getElementById("resultTable").innerHTML=`
-
-<div class="table-wrap"><table>
-<tr>
-<th>ကျောင်းသား</th><th>အတန်း</th><th>ဘာသာရပ်</th>
-<th>စတင်ချိန်</th><th>ပြီးချိန်</th><th>ကြာချိန်</th>
-<th>ရမှတ်</th><th>Grade</th>
-</tr>
-${rs.map(r=>`<tr>
-<td>${esc(r.student)}</td>
-<td>${esc(r.gradeName)}</td>
-<td>${esc(r.subject)}</td>
-<td>${esc(r.start)}</td>
-<td>${esc(r.end)}</td>
-<td>${formatDuration(r.duration)}</td>
-<td>${r.score}/${r.total}</td>
-<td>${r.grade}</td>
-</tr>`).join("")}
-</table></div>`;
-}/* PROFILE */
-
-function profileView(view){
-view.innerHTML=`
-
-<div class="box">
-<h3>My Profile</h3>
-<p>အမည်: ${esc(currentUser.name)}</p>
-<p>Username: ${esc(currentUser.user)}</p>
-<p>အတန်း: ${esc(currentUser.grade||"-")}</p>
-<p>ဘာသာတွဲ: ${esc(currentUser.combo||"-")}</p>
-</div>`;
-}/* BACKUP */
-
-function backupView(view){
-view.innerHTML=`
-
-<div class="box">
-<h3>Database Backup / Restore</h3>
-<p>CFBS Data များကို JSON ဖိုင်အဖြစ် သိမ်းဆည်းနိုင်ပါသည်။</p>
-<button onclick="exportBackup()">Backup Download</button>
-<label>Backup ဖိုင်ပြန်ထည့်ရန်</label>
-<input type="file" id="backupFile" accept=".json">
-<button onclick="restoreBackup()">Restore Database</button>
-</div>`;
-}function exportBackup(){
-let data={};
-Object.values(KEY).forEach(k=>data[k]=read(k));
-let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
-downloadBlob(blob,"CFBS_Exam_Backup.json");
-}
-
-function restoreBackup(){
-let file=document.getElementById("backupFile").files[0];
-if(!file){alert("Backup ဖိုင်ရွေးပါ။");return;}
-let reader=new FileReader();
-reader.onload=()=>{
-try{
-let data=JSON.parse(reader.result);
-Object.values(KEY).forEach(k=>{
-if(data[k]!==undefined)localStorage.setItem(k,JSON.stringify(data[k]));
-});
-alert("Restore ပြီးပါပြီ။ App ကို ပြန်ဖွင့်ပါ။");
-location.reload();
-}catch(e){alert("Backup ဖိုင် မှားယွင်းနေပါသည်။");}
-};
-reader.readAsText(file);
-}
-
-/* HELPERS */
-
-function gradeOptions(selected){
-return grades.filter(g=>!selected||g===selected)
-.map(g=>"<option>${g}</option>").join("");
-}
-
-function makeId(){
-return "CFBS-"+Date.now()+"-"+Math.floor(Math.random()*10000);
-}
-
-function shuffle(arr){
-let a=[...arr];
-for(let i=a.length-1;i>0;i--){
-let j=Math.floor(Math.random()*(i+1));
-[a[i],a[j]]=[a[j],a[i]];
-}
-return a;
+function id(prefix){
+ return prefix+'-'+Date.now()+'-'+Math.random().toString(36).slice(2,7);
 }
 
 function esc(v){
-return String(v??"").replace(/[&<>"']/g,c=>({
-"&":"&","<":"<",">":">",
-'"':""","'":"'"
-}[c]));
+ return String(v??'').replace(/[&<>"']/g,c=>({
+ '&':'&amp;','<':'&lt;','>':'&gt;',
+ '"':'&quot;',"'":'&#39;'
+ })[c]);
 }
 
-function formatDuration(sec){
-let h=Math.floor(sec/3600);
-let m=Math.floor((sec%3600)/60);
-let s=sec%60;
-if(h)return "${h} နာရီ ${m} မိနစ်";
-if(m)return "${m} မိနစ် ${s} စက္ကန့်";
-return "${s} စက္ကန့်";
+function upper(g){
+ return ['Grade 10','Grade 11','Grade 12'].includes(g);
 }
 
-function downloadBlob(blob,name){
-let url=URL.createObjectURL(blob);
-let a=document.createElement("a");
-a.href=url;a.download=name;a.click();
-URL.revokeObjectURL(url);
+function subjects(g,combo){
+ if(['KG','Grade 1','Grade 2','Grade 3','Grade 4','Grade 5'].includes(g))
+ return LOWER;
+
+ if(['Grade 6','Grade 7','Grade 8','Grade 9'].includes(g))
+ return MIDDLE;
+
+ if(upper(g))return COMBINATIONS[combo]||[];
+
+ return [];
+}
+
+function gradeOptions(selected=''){
+ return GRADES.map(g=>
+ `<option value="${g}" ${g===selected?'selected':''}>${g}</option>`
+ ).join('');
+}
+
+function comboOptions(selected='Combination 1'){
+ return Object.keys(COMBINATIONS).map(c=>
+ `<option value="${c}" ${c===selected?'selected':''}>${c}</option>`
+ ).join('');
+}
+
+function newId(){return id('CFBS')}
+
+/* ================= INITIAL DATA ================= */
+
+function initialize(){
+
+ if(!localStorage.getItem(KEY.users)){
+  save(KEY.users,[
+   {
+    id:newId(),user:'principal',pass:'123',
+    role:'principal',name:'ကျောင်းအုပ်ကြီး'
+   },
+   {
+    id:newId(),user:'teacher',pass:'123',
+    role:'teacher',name:'စမ်းသပ်ဆရာ',
+    grade:'Grade 6',subject:'သင်္ချာ'
+   },
+   {
+    id:newId(),user:'student',pass:'123',
+    role:'student',name:'မောင်ကျောင်းသား',
+    roll:'00001',grade:'Grade 6',
+    combo:'-',status:'active'
+   }
+  ]);
+ }
+
+ [KEY.questions,KEY.exams,KEY.attempts,KEY.results]
+ .forEach(k=>{
+  if(!localStorage.getItem(k))save(k,[]);
+ });
+}
+
+initialize();
+
+let currentUser=null;
+let activeExam=null;
+let timer=null;
+
+/* ================= LOGIN ================= */
+
+function handleLogin(){
+
+ const username=$('loginUser').value.trim();
+ const password=$('loginPass').value;
+
+ const user=read(KEY.users).find(u=>
+  u.user===username&&u.pass===password
+ );
+
+ if(!user){
+  $('loginMsg').textContent='Username သို့မဟုတ် Password မှားနေပါသည်။';
+  return;
+ }
+
+ if(user.status==='inactive'){
+  $('loginMsg').textContent='ဤအကောင့်ကို ပိတ်ထားပါသည်။';
+  return;
+ }
+
+ currentUser=user;
+
+ $('loginSection').classList.add('hidden');
+ $('dashboardSection').classList.remove('hidden');
+
+ $('welcomeText').textContent=
+ `မင်္ဂလာပါ ${user.name}`;
+
+ dashboard();
+}
+
+function logout(){
+
+ if(timer){
+  alert('စာမေးပွဲဖြေနေစဉ် Logout မလုပ်နိုင်ပါ။');
+  return;
+ }
+
+ currentUser=null;
+
+ $('dashboardSection').classList.add('hidden');
+ $('loginSection').classList.remove('hidden');
+
+ $('loginUser').value='';
+ $('loginPass').value='';
+ $('portalSub').textContent='SMART EXAMINATION SYSTEM';
+}
+
+/* ================= ROLE DASHBOARD ================= */
+
+function menu(icon,title,fn){
+ return `<div class="menu" onclick="${fn}">
+ <b>${icon} ${title}</b>
+ <small>ဖွင့်ရန်နှိပ်ပါ</small>
+ </div>`;
+}
+
+function dashboard(){
+
+ const root=$('roleContent');
+
+ if(currentUser.role==='principal'){
+
+  $('portalSub').textContent='PRINCIPAL ACCOUNT MANAGEMENT';
+
+  const users=read(KEY.users);
+
+  root.innerHTML=`
+   <div class="notice">
+   ကျောင်းအုပ်၏ လုပ်ပိုင်ခွင့်မှာ ဆရာ/ဆရာမနှင့်
+   ကျောင်းသားအကောင့်ဖန်တီးခြင်းသာ ဖြစ်ပါသည်။
+   Question Bank နှင့် စာမေးပွဲဖန်တီးခြင်း မပါဝင်ပါ။
+   </div>
+
+   <div class="grid">
+    ${menu('👨‍🏫','ဆရာ/ဆရာမ အကောင့်ဖန်တီးရန်',"showTeachers()")}
+    ${menu('🎓','ကျောင်းသား အကောင့်ဖန်တီးရန်',"showStudents()")}
+   </div>
+
+   <div id="dynamicView"></div>
+  `;
+
+ }else if(currentUser.role==='teacher'){
+
+  $('portalSub').textContent='TEACHER PORTAL';
+
+  root.innerHTML=`
+   <div class="notice">
+   ဆရာ/ဆရာမသည် Question Bank၊ OCR၊
+   စာမေးပွဲဖန်တီးခြင်းနှင့် Question File Export
+   ကိုသာ ဆောင်ရွက်နိုင်ပါသည်။
+   ကျောင်းသားအကောင့်ဖန်တီးခွင့် မရှိပါ။
+   </div>
+
+   <div class="grid">
+    ${menu('📚','Question Bank',"showQuestionBank()")}
+    ${menu('📝','စာမေးပွဲဖန်တီးရန်',"showCreateExam()")}
+    ${menu('📋','စာမေးပွဲစာရင်း',"showExamList()")}
+    ${menu('📤','Question File Export',"showExport()")}
+    ${menu('📊','ရလဒ်များ',"showTeacherResults()")}
+   </div>
+
+   <div id="dynamicView"></div>
+  `;
+
+ }else{
+
+  $('portalSub').textContent='STUDENT EXAMINATION PORTAL';
+  studentDashboard();
+ }
+}
+
+/* ================= PRINCIPAL ACCOUNT MANAGEMENT ================= */
+
+function showTeachers(){
+
+ if(currentUser.role!=='principal')return;
+
+ const view=$('dynamicView');
+
+ view.innerHTML=`
+ <div class="box">
+ <h3>ဆရာ/ဆရာမ အကောင့်ဖန်တီးရန်</h3>
+
+ <label>အမည်</label>
+ <input id="tName">
+
+ <label>Username</label>
+ <input id="tUser">
+
+ <label>Password</label>
+ <input id="tPass">
+
+ <label>တာဝန်အတန်း</label>
+ <select id="tGrade" onchange="teacherSubjectOptions()">
+ ${gradeOptions('Grade 6')}
+ </select>
+
+ <div id="tComboWrap" class="hidden">
+ <label>ဘာသာတွဲ</label>
+ <select id="tCombo" onchange="teacherSubjectOptions()">
+ ${comboOptions()}
+ </select>
+ </div>
+
+ <label>တာဝန်ဘာသာရပ်</label>
+ <select id="tSubject"></select>
+
+ <button onclick="createTeacher()">အကောင့်ဖန်တီးမည်</button>
+ </div>
+
+ <div class="box">
+ <h3>ဆရာ/ဆရာမစာရင်း</h3>
+ <div id="teacherTable"></div>
+ </div>
+ `;
+
+ teacherSubjectOptions();
+ drawTeachers();
+}
+
+function teacherSubjectOptions(){
+
+ const g=$('tGrade').value;
+ const combo=$('tCombo').value;
+
+ $('tComboWrap').classList.toggle('hidden',!upper(g));
+
+ $('tSubject').innerHTML=
+ subjects(g,combo).map(s=>
+ `<option>${esc(s)}</option>`
+ ).join('');
+}
+
+function createTeacher(){
+
+ const name=$('tName').value.trim();
+ const user=$('tUser').value.trim();
+ const pass=$('tPass').value;
+ const grade=$('tGrade').value;
+ const combo=upper(grade)?$('tCombo').value:'-';
+ const subject=$('tSubject').value;
+
+ if(!name||!user||!pass)return alert('အချက်အလက်ဖြည့်ပါ။');
+
+ const users=read(KEY.users);
+
+ if(users.some(u=>u.user.toLowerCase()===user.toLowerCase()))
+ return alert('Username ရှိပြီးသားဖြစ်သည်။');
+
+ users.push({
+  id:newId(),name,user,pass,
+  role:'teacher',grade,combo,subject,
+  status:'active'
+ });
+
+ save(KEY.users,users);
+
+ alert('ဆရာ/ဆရာမအကောင့် ဖန်တီးပြီးပါပြီ။');
+ showTeachers();
+}
+
+function drawTeachers(){
+
+ const list=read(KEY.users).filter(u=>u.role==='teacher');
+
+ $('teacherTable').innerHTML=`
+ <div class="table-wrap"><table>
+ <tr><th>စဉ်</th><th>အမည်</th><th>Username</th><th>အတန်း</th><th>ဘာသာ</th><th>Password</th><th></th></tr>
+ ${list.map((u,i)=>`
+ <tr>
+ <td>${i+1}</td><td>${esc(u.name)}</td>
+ <td>${esc(u.user)}</td><td>${esc(u.grade)}</td>
+ <td>${esc(u.subject)}</td><td>${esc(u.pass)}</td>
+ <td><button class="danger smallbtn" onclick="deleteUser('${u.id}')">ဖျက်</button></td>
+ </tr>`).join('')}
+ </table></div>`;
+}
+
+function showStudents(){
+
+ if(currentUser.role!=='principal')return;
+
+ $('dynamicView').innerHTML=`
+ <div class="box">
+ <h3>ကျောင်းသားအကောင့်ဖန်တီးရန်</h3>
+
+ <label>ကျောင်းသားအမည်</label>
+ <input id="sName">
+
+ <label>Student ID / ကျောင်းဝင်အမှတ်</label>
+ <input id="sRoll">
+
+ <label>အဖအမည်</label>
+ <input id="sFather">
+
+ <label>အတန်း</label>
+ <select id="sGrade" onchange="studentComboToggle()">
+ ${gradeOptions('KG')}
+ </select>
+
+ <div id="sComboWrap" class="hidden">
+ <label>ဘာသာတွဲ</label>
+ <select id="sCombo">${comboOptions()}</select>
+ </div>
+
+ <label>Username</label>
+ <input id="sUser">
+
+ <label>Password</label>
+ <input id="sPass">
+
+ <button onclick="createStudent()">ကျောင်းသားအကောင့်ဖန်တီးမည်</button>
+ </div>
+
+ <div class="box">
+ <h3>အတန်းအလိုက် ကျောင်းသားစာရင်း</h3>
+ <label>အတန်းရွေးပါ</label>
+ <select id="sFilter" onchange="drawStudents()">${gradeOptions('KG')}</select>
+ <label>ရှာရန်</label>
+ <input id="sSearch" oninput="drawStudents()">
+ <div id="studentTable"></div>
+ </div>
+ `;
+
+ studentComboToggle();
+ drawStudents();
+}
+
+function studentComboToggle(){
+ $('sComboWrap').classList.toggle('hidden',!upper($('sGrade').value));
+}
+
+function createStudent(){
+
+ const name=$('sName').value.trim();
+ const roll=$('sRoll').value.trim();
+ const father=$('sFather').value.trim();
+ const grade=$('sGrade').value;
+ const combo=upper(grade)?$('sCombo').value:'-';
+ const user=$('sUser').value.trim();
+ const pass=$('sPass').value;
+
+ if(!name||!roll||!user||!pass)
+ return alert('အချက်အလက်အားလုံး ဖြည့်ပါ။');
+
+ const users=read(KEY.users);
+
+ if(users.some(u=>u.user.toLowerCase()===user.toLowerCase()))
+ return alert('Username ရှိပြီးသားဖြစ်သည်။');
+
+ if(users.some(u=>u.role==='student'&&u.roll===roll))
+ return alert('Student ID ရှိပြီးသားဖြစ်သည်။');
+
+ users.push({
+  id:newId(),name,roll,father,grade,combo,
+  user,pass,role:'student',status:'active'
+ });
+
+ save(KEY.users,users);
+
+ alert('ကျောင်းသားအကောင့် ဖန်တီးပြီးပါပြီ။');
+ showStudents();
+}
+
+function drawStudents(){
+
+ const grade=$('sFilter').value;
+ const q=$('sSearch').value.toLowerCase();
+
+ const list=read(KEY.users).filter(u=>
+  u.role==='student'&&u.grade===grade&&
+  (u.name+' '+u.roll+' '+u.user).toLowerCase().includes(q)
+ );
+
+ $('studentTable').innerHTML=`
+ <p class="muted">${esc(grade)} — ${list.length} ဦး</p>
+ <div class="table-wrap"><table>
+ <tr><th>စဉ်</th><th>ID</th><th>အမည်</th><th>Username</th><th>Password</th><th>ဘာသာတွဲ</th><th></th></tr>
+ ${list.map((u,i)=>`
+ <tr>
+ <td>${i+1}</td><td>${esc(u.roll)}</td>
+ <td>${esc(u.name)}</td><td>${esc(u.user)}</td>
+ <td>${esc(u.pass)}</td><td>${esc(u.combo)}</td>
+ <td><button class="danger smallbtn" onclick="deleteUser('${u.id}')">ဖျက်</button></td>
+ </tr>`).join('')}
+ </table></div>`;
+}
+
+function deleteUser(uid){
+
+ if(currentUser.role!=='principal')return;
+
+ if(!confirm('ဤအကောင့်ကို ဖျက်မှာ သေချာပါသလား။'))return;
+
+ save(KEY.users,read(KEY.users).filter(u=>u.id!==uid));
+
+ if($('teacherTable'))drawTeachers();
+ if($('studentTable'))drawStudents();
+}
+
+/* ================= TEACHER QUESTION BANK ================= */
+
+function showQuestionBank(){
+
+ if(currentUser.role!=='teacher')return;
+
+ $('dynamicView').innerHTML=`
+ <div class="box">
+ <h3>Question Bank</h3>
+
+ <label>အတန်း</label>
+ <select id="qGrade" onchange="updateQSubjects()">
+ ${gradeOptions(currentUser.grade)}
+ </select>
+
+ <div id="qComboWrap" class="hidden">
+ <label>ဘာသာတွဲ</label>
+ <select id="qCombo" onchange="updateQSubjects()">
+ ${comboOptions(currentUser.combo||'Combination 1')}
+ </select>
+ </div>
+
+ <label>ဘာသာရပ်</label>
+ <select id="qSubject"></select>
+
+ <label>Chapter</label>
+ <input id="qChapter">
+
+ <label>မေးခွန်းအမျိုးအစား</label>
+ <select id="qType" onchange="qTypeChange()">
+ <option value="mcq">Multiple Choice</option>
+ <option value="tf">True / False</option>
+ <option value="fill">Fill in the Blank</option>
+ <option value="short">Short Answer</option>
+ <option value="essay">Essay / Written</option>
+ </select>
+
+ <label>မေးခွန်း</label>
+ <textarea id="qText"></textarea>
+
+ <label>မေးခွန်းပုံ (OCR)</label>
+ <input type="file" id="qImage" accept="image/*">
+ <button class="secondary" onclick="runOCR()">OCR ဖြင့်စာဖတ်ရန်</button>
+ <p id="ocrStatus" class="muted"></p>
+
+ <div id="mcqFields">
+ <label>Option A</label><input id="qA">
+ <label>Option B</label><input id="qB">
+ <label>Option C</label><input id="qC">
+ <label>Option D</label><input id="qD">
+ <label>အဖြေမှန်</label>
+ <select id="qAnswer"><option>A</option><option>B</option><option>C</option><option>D</option></select>
+ </div>
+
+ <div id="textAnswerFields" class="hidden">
+ <label>အဖြေမှန်</label>
+ <input id="qTextAnswer">
+ </div>
+
+ <label>အမှတ်</label>
+ <input id="qMark" type="number" min="1" value="1">
+
+ <button onclick="saveQuestion()">မေးခွန်းသိမ်းမည်</button>
+ </div>
+
+ <div class="box">
+ <h3>သိမ်းထားသော မေးခွန်းများ</h3>
+ <div id="questionList"></div>
+ </div>
+ `;
+
+ updateQSubjects();
+ qTypeChange();
+ drawQuestions();
+}
+
+function updateQSubjects(){
+
+ const g=$('qGrade').value;
+ const combo=$('qCombo')?.value||currentUser.combo||'Combination 1';
+
+ $('qComboWrap').classList.toggle('hidden',!upper(g));
+
+ let list=subjects(g,combo);
+
+ if(currentUser.grade&&currentUser.grade!=='အားလုံး')
+ list=list.filter(s=>s===currentUser.subject);
+
+ $('qSubject').innerHTML=list.map(s=>
+ `<option>${esc(s)}</option>`
+ ).join('');
+}
+
+function qTypeChange(){
+
+ const type=$('qType').value;
+
+ $('mcqFields').classList.toggle('hidden',type!=='mcq');
+
+ $('textAnswerFields').classList.toggle(
+  'hidden',type==='mcq'||type==='essay'
+ );
+}
+
+async function runOCR(){
+
+ const file=$('qImage').files[0];
+
+ if(!file)return alert('မေးခွန်းပုံရွေးပါ။');
+
+ if(!window.Tesseract)
+ return alert('OCR အတွက် Internet ချိတ်ဆက်ထားပါ။');
+
+ $('ocrStatus').textContent='စာဖတ်နေပါသည်...';
+
+ try{
+
+  const result=await Tesseract.recognize(
+   file,'mya+eng',
+   {logger:m=>{
+    if(m.status)$('ocrStatus').textContent=
+    m.status+' '+Math.round((m.progress||0)*100)+'%';
+   }}
+  );
+
+  $('qText').value=(
+   $('qText').value+'\n'+result.data.text
+  ).trim();
+
+  $('ocrStatus').textContent=
+  'ဖတ်ပြီးပါပြီ။ စာသားကို စစ်ဆေးပြီး သိမ်းပါ။';
+
+ }catch(e){
+
+  $('ocrStatus').textContent='OCR မအောင်မြင်ပါ။';
+
+ }
+}
+
+function saveQuestion(){
+
+ const grade=$('qGrade').value;
+ const combo=upper(grade)?$('qCombo').value:'-';
+ const subject=$('qSubject').value;
+ const chapter=$('qChapter').value.trim();
+ const text=$('qText').value.trim();
+ const type=$('qType').value;
+ const mark=Number($('qMark').value);
+
+ if(!chapter||!text||!subject||!Number.isInteger(mark)||mark<=0)
+ return alert('မေးခွန်းအချက်အလက် ပြည့်စုံစွာဖြည့်ပါ။');
+
+ if(currentUser.grade&&currentUser.grade!=='အားလုံး'&&grade!==currentUser.grade)
+ return alert('သတ်မှတ်ထားသောအတန်းသာ ထည့်နိုင်ပါသည်။');
+
+ if(currentUser.subject&&currentUser.subject!=='အားလုံး'&&subject!==currentUser.subject)
+ return alert('သတ်မှတ်ထားသောဘာသာရပ်သာ ထည့်နိုင်ပါသည်။');
+
+ const q={
+  id:newId(),grade,combo,subject,chapter,text,type,mark,
+  owner:currentUser.user
+ };
+
+ if(type==='mcq'){
+
+  q.options=[
+   $('qA').value.trim(),
+   $('qB').value.trim(),
+   $('qC').value.trim(),
+   $('qD').value.trim()
+  ];
+
+  q.answer=$('qAnswer').value;
+
+  if(q.options.some(x=>!x))
+  return alert('A/B/C/D အားလုံးဖြည့်ပါ။');
+
+ }else if(type!=='essay'){
+
+  q.answer=$('qTextAnswer').value.trim();
+
+  if(!q.answer)return alert('အဖြေမှန်ဖြည့်ပါ။');
+
+ }
+
+ const bank=read(KEY.questions);
+ bank.push(q);
+ save(KEY.questions,bank);
+
+ alert('Question Bank သိမ်းပြီးပါပြီ။');
+ showQuestionBank();
+}
+
+function drawQuestions(){
+
+ if(!$('questionList'))return;
+
+ const list=read(KEY.questions).filter(q=>
+ q.owner===currentUser.user
+ );
+
+ $('questionList').innerHTML=list.map((q,i)=>`
+ <div class="box">
+ <b>${i+1}. ${esc(q.grade)} / ${esc(q.subject)}</b>
+ <p>${esc(q.text)}</p>
+ <p class="muted">${esc(q.chapter)} | ${q.mark} မှတ်</p>
+ <button class="danger smallbtn" onclick="deleteQuestion('${q.id}')">ဖျက်ရန်</button>
+ </div>
+ `).join('')||'မေးခွန်းမရှိသေးပါ။';
+}
+
+function deleteQuestion(qid){
+
+ if(!confirm('ဖျက်မှာသေချာပါသလား။'))return;
+
+ save(KEY.questions,read(KEY.questions).filter(q=>q.id!==qid));
+
+ drawQuestions();
+}
+
+/* ================= TEACHER EXAM CREATION ================= */
+
+function showCreateExam(){
+
+ if(currentUser.role!=='teacher')return;
+
+ $('dynamicView').innerHTML=`
+ <div class="box">
+ <h3>စာမေးပွဲဖန်တီးရန်</h3>
+
+ <label>စာမေးပွဲအမျိုးအစား</label>
+ <select id="eType">
+ ${EXAMS.map(x=>`<option>${x}</option>`).join('')}
+ </select>
+
+ <label>စာမေးပွဲအမည်</label>
+ <input id="eTitle">
+
+ <label>အတန်း</label>
+ <select id="eGrade" onchange="updateExamSubjects()">
+ ${gradeOptions(currentUser.grade)}
+ </select>
+
+ <div id="eComboWrap" class="hidden">
+ <label>ဘာသာတွဲ</label>
+ <select id="eCombo" onchange="updateExamSubjects()">
+ ${comboOptions(currentUser.combo||'Combination 1')}
+ </select>
+ </div>
+
+ <label>ဘာသာရပ်</label>
+ <select id="eSubject"></select>
+
+ <label>စုစုပေါင်းအမှတ်</label>
+ <input id="eTotal" type="number" min="1" value="50">
+
+ <label>ဖြေဆိုချိန် (မိနစ်)</label>
+ <input id="eMinutes" type="number" min="1" value="60">
+
+ <label>မေးခွန်းအရေအတွက်</label>
+ <input id="eCount" type="number" min="1" value="10">
+
+ <div id="eChapters" class="box"></div>
+
+ <button onclick="createExam()">စာမေးပွဲဖန်တီးမည်</button>
+ </div>
+ `;
+
+ updateExamSubjects();
+}
+
+function updateExamSubjects(){
+
+ const g=$('eGrade').value;
+ const combo=$('eCombo')?.value||currentUser.combo||'Combination 1';
+
+ $('eComboWrap').classList.toggle('hidden',!upper(g));
+
+ let list=subjects(g,combo);
+
+ if(currentUser.grade&&currentUser.grade!=='အားလုံး')
+ list=list.filter(s=>s===currentUser.subject);
+
+ $('eSubject').innerHTML=list.map(s=>
+ `<option>${esc(s)}</option>`
+ ).join('');
+
+ updateExamChapters();
+}
+
+function updateExamChapters(){
+
+ if(!$('eChapters'))return;
+
+ const g=$('eGrade').value;
+ const s=$('eSubject').value;
+
+ const qs=read(KEY.questions).filter(q=>
+ q.grade===g&&q.subject===s&&q.owner===currentUser.user
+ );
+
+ const chapters=[...new Set(qs.map(q=>q.chapter))];
+
+ $('eChapters').innerHTML='<b>Chapter ရွေးပါ</b>'+
+ (chapters.map(c=>`
+ <label class="inline">
+ <input type="checkbox" class="chapterCheck" value="${esc(c)}" checked>
+ ${esc(c)}
+ </label>
+ `).join('')||'<p>Question Bank မရှိသေးပါ။</p>');
+}
+
+function exactMarkSelection(pool,count,total){
+
+ const a=[...pool].sort(()=>Math.random()-.5);
+ const memo=new Set();
+
+ function find(i,n,sum,chosen){
+
+  if(n===0)return sum===total?chosen:null;
+
+  if(i>=a.length||a.length-i<n||sum>total)return null;
+
+  const key=i+'-'+n+'-'+sum;
+
+  if(memo.has(key))return null;
+
+  memo.add(key);
+
+  const first=find(i+1,n-1,sum+a[i].mark,[...chosen,a[i]]);
+
+  if(first)return first;
+
+  return find(i+1,n,sum,chosen);
+ }
+
+ return find(0,count,0,[]);
+}
+
+function createExam(){
+
+ const type=$('eType').value;
+ const title=$('eTitle').value.trim();
+ const grade=$('eGrade').value;
+ const combo=upper(grade)?$('eCombo').value:'-';
+ const subject=$('eSubject').value;
+ const total=Number($('eTotal').value);
+ const minutes=Number($('eMinutes').value);
+ const count=Number($('eCount').value);
+
+ const chapters=[
+ ...document.querySelectorAll('.chapterCheck:checked')
+ ].map(x=>x.value);
+
+ if(!title||!subject||!chapters.length||
+ !Number.isInteger(total)||total<=0||
+ !Number.isInteger(minutes)||minutes<=0||
+ !Number.isInteger(count)||count<=0)
+ return alert('အချက်အလက်များ ပြည့်စုံစွာဖြည့်ပါ။');
+
+ const pool=read(KEY.questions).filter(q=>
+ q.grade===grade&&q.combo===combo&&
+ q.subject===subject&&chapters.includes(q.chapter)&&
+ q.owner===currentUser.user
+ );
+
+ const chosen=exactMarkSelection(pool,count,total);
+
+ if(!chosen)
+ return alert('သတ်မှတ်ထားသော မေးခွန်းအရေအတွက်နှင့် စုစုပေါင်းအမှတ် ကိုက်ညီသော မေးခွန်းများ မရှိပါ။');
+
+ const exam={
+  id:newId(),type,title,grade,combo,subject,
+  total,minutes,count,active:true,
+  owner:currentUser.user,
+  questions:chosen,
+  createdAt:Date.now()
+ };
+
+ const exams=read(KEY.exams);
+ exams.push(exam);
+ save(KEY.exams,exams);
+
+ alert('စာမေးပွဲဖန်တီးပြီးပါပြီ။');
+ showExamList();
+}
+
+/* ================= EXPORT QUESTION FILE ================= */
+
+function showExamList(){
+
+ const exams=read(KEY.exams).filter(e=>e.owner===currentUser.user);
+
+ $('dynamicView').innerHTML=`
+ <h3>စာမေးပွဲစာရင်း</h3>
+ ${exams.map(e=>`
+ <div class="box">
+ <b>${esc(e.title)}</b>
+ <p>${esc(e.grade)} / ${esc(e.subject)}</p>
+ <p>${e.total} မှတ် | ${e.minutes} မိနစ်</p>
+ <button onclick="exportQuestionFile('${e.id}')">Question File Export</button>
+ <button class="secondary" onclick="toggleExam('${e.id}')">${e.active?'ပိတ်ရန်':'ပြန်ဖွင့်ရန်'}</button>
+ </div>
+ `).join('')||'<p>စာမေးပွဲမရှိသေးပါ။</p>'}
+ `;
+}
+
+function toggleExam(eid){
+
+ const a=read(KEY.exams);
+ const e=a.find(x=>x.id===eid&&x.owner===currentUser.user);
+
+ if(!e)return;
+
+ e.active=!e.active;
+ save(KEY.exams,a);
+ showExamList();
+}
+
+function showExport(){
+
+ const exams=read(KEY.exams).filter(e=>e.owner===currentUser.user);
+
+ $('dynamicView').innerHTML=`
+ <div class="box">
+ <h3>Question File Export</h3>
+ <label>စာမေးပွဲရွေးပါ</label>
+ <select id="exportSelect">
+ ${exams.map(e=>`<option value="${e.id}">${esc(e.grade)} - ${esc(e.subject)} - ${esc(e.title)}</option>`).join('')}
+ </select>
+ <button onclick="exportQuestionFile($('exportSelect').value)">Export File</button>
+ <p class="notice">ထုတ်ယူထားသော JSON ဖိုင်ကို ကျောင်းသားဖုန်းသို့ ပေးပို့ပါ။ ကျောင်းသားက Import လုပ်ပြီး Offline ဖြေနိုင်ပါသည်။</p>
+ </div>`;
+}
+
+function exportQuestionFile(eid){
+
+ const exam=read(KEY.exams).find(e=>
+ e.id===eid&&e.owner===currentUser.user
+ );
+
+ if(!exam)return alert('စာမေးပွဲမတွေ့ပါ။');
+
+ const data={
+  kind:'CFBS_QUESTION_FILE',
+  version:1,
+  exam
+ };
+
+ downloadJSON(
+  'CFBS_Question_File.json',
+  data
+ );
+}
+
+function downloadJSON(filename,data){
+
+ const blob=new Blob(
+  [JSON.stringify(data,null,2)],
+  {type:'application/json'}
+ );
+
+ const url=URL.createObjectURL(blob);
+ const a=document.createElement('a');
+
+ a.href=url;
+ a.download=filename;
+ a.click();
+
+ setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
+/* ================= STUDENT DASHBOARD ================= */
+
+function studentDashboard(){
+
+ const u=currentUser;
+
+ $('roleContent').innerHTML=`
+ <div class="box">
+ <h3>ကျောင်းသားအချက်အလက်</h3>
+ <p>အမည်: ${esc(u.name)}</p>
+ <p>အတန်း: ${esc(u.grade)}</p>
+ <p>Student ID: ${esc(u.roll)}</p>
+ ${upper(u.grade)?`<p>ဘာသာတွဲ: ${esc(u.combo)}</p>`:''}
+ </div>
+
+ <div class="box">
+ <h3>Question File Import</h3>
+ <input type="file" id="packageFile" accept=".json,application/json">
+ <button onclick="importQuestionFile()">Import လုပ်မည်</button>
+ </div>
+
+ <div class="box">
+ <h3>စာမေးပွဲဖြေရန် ဘာသာရပ်ရွေးပါ</h3>
+ <label>ဘာသာရပ်</label>
+ <select id="studentSubject" onchange="drawStudentExams()">
+ <option value="">ဘာသာရပ်အားလုံး</option>
+ ${subjects(u.grade,u.combo).map(s=>`<option>${esc(s)}</option>`).join('')}
+ </select>
+ <div id="studentExamList"></div>
+ </div>
+
+ <div class="box">
+ <h3>ကျွန်ုပ်၏ရလဒ်များ</h3>
+ <div id="myResults"></div>
+ </div>
+ `;
+
+ drawStudentExams();
+ drawMyResults();
+}
+
+function importQuestionFile(){
+
+ const file=$('packageFile').files[0];
+
+ if(!file)return alert('Question File ရွေးပါ။');
+
+ file.text().then(text=>{
+
+  const data=JSON.parse(text);
+
+  if(data.kind!=='CFBS_QUESTION_FILE'||!data.exam.questions)
+  throw new Error('Invalid');
+
+  const exam=data.exam;
+
+  if(exam.grade!==currentUser.grade)
+  return alert('ဤစာမေးပွဲသည် သင့်အတန်းအတွက် မဟုတ်ပါ။');
+
+  if(!subjects(currentUser.grade,currentUser.combo).includes(exam.subject))
+  return alert('ဤဘာသာရပ်သည် သင့်ဘာသာတွဲတွင် မပါဝင်ပါ။');
+
+  if(upper(currentUser.grade)&&exam.combo!==currentUser.combo)
+  return alert('ဘာသာတွဲမကိုက်ညီပါ။');
+
+  const exams=read(KEY.exams);
+
+  if(!exams.some(e=>e.id===exam.id)){
+   exams.push({...exam,imported:true,active:true});
+   save(KEY.exams,exams);
+  }
+
+  alert('Question File Import အောင်မြင်ပါသည်။');
+  drawStudentExams();
+
+ }).catch(()=>alert('ဖိုင်မှားနေပါသည်။'));
+}
+
+function drawStudentExams(){
+
+ if(!$('studentExamList'))return;
+
+ const subject=$('studentSubject').value;
+ const exams=read(KEY.exams).filter(e=>
+ e.active&&e.grade===currentUser.grade&&
+ (!subject||e.subject===subject)&&
+ subjects(currentUser.grade,currentUser.combo).includes(e.subject)
+ );
+
+ const attempts=read(KEY.attempts);
+
+ $('studentExamList').innerHTML=exams.map(e=>{
+
+  const a=attempts.find(x=>
+   x.examId===e.id&&x.student===currentUser.user
+  );
+
+  const completed=a&&a.status==='completed';
+
+  return `
+  <div class="box">
+  <b>${esc(e.title)}</b>
+  <p>${esc(e.type)} / ${esc(e.subject)}</p>
+  <p>${e.total} မှတ် / ${e.minutes} မိနစ်</p>
+  <button ${completed?'disabled':''}
+   onclick="startExam('${e.id}')">
+   ${completed?'ဖြေဆိုပြီးပါပြီ':'ဖြေဆိုရန်'}
+  </button>
+  </div>
+  `;
+
+ }).join('')||'<p>စာမေးပွဲမရှိသေးပါ။</p>';
+}
+
+/* ================= EXAM ATTEMPT ================= */
+
+function startExam(eid){
+
+ const exam=read(KEY.exams).find(e=>e.id===eid);
+
+ if(!exam)return;
+
+ const attempts=read(KEY.attempts);
+
+ const old=attempts.find(a=>
+ a.examId===eid&&a.student===currentUser.user
+ );
+
+ if(old&&old.status==='completed')
+ return alert('ဤစာမေးပွဲကို ဖြေဆိုပြီးပါပြီ။');
+
+ if(old&&old.status==='started'){
+
+  activeExam={
+   exam,
+   questions:old.questions,
+   answers:old.answers||{},
+   start:old.start
+  };
+
+ }else{
+
+  activeExam={
+   exam,
+   questions:[...exam.questions].sort(()=>Math.random()-.5),
+   answers:{},
+   start:Date.now()
+  };
+
+  attempts.push({
+   examId:eid,
+   student:currentUser.user,
+   status:'started',
+   start:activeExam.start,
+   questions:activeExam.questions,
+   answers:{}
+  });
+
+  save(KEY.attempts,attempts);
+ }
+
+ renderQuiz();
+}
+
+function persistAttempt(){
+
+ const a=read(KEY.attempts);
+ const x=a.find(v=>
+ v.examId===activeExam.exam.id&&
+ v.student===currentUser.user
+ );
+
+ if(x){
+  x.answers=activeExam.answers;
+  x.questions=activeExam.questions;
+ }
+
+ save(KEY.attempts,a);
+}
+
+function renderQuiz(){
+
+ const e=activeExam.exam;
+
+ $('roleContent').innerHTML=`
+ <div class="box">
+ <div class="timer" id="timer"></div>
+ <h3>${esc(e.title)} — ${esc(e.subject)}</h3>
+ <div id="quizBody"></div>
+ <button class="secondary" onclick="reviewQuiz()">အဖြေပြန်စစ်ရန်</button>
+ </div>
+ `;
+
+ $('quizBody').innerHTML=activeExam.questions.map((q,i)=>{
+
+  const val=activeExam.answers[q.id]??'';
+  let controls='';
+
+  if(q.type==='mcq'){
+
+   controls=q.options.map((op,j)=>`
+   <div class="option">
+   <input type="radio" name="ans${i}" value="${'ABCD'[j]}"
+   ${val==='ABCD'[j]?'checked':''}
+   onchange="setAnswer('${q.id}',this.value)">
+   <label>${'ABCD'[j]}. ${esc(op)}</label>
+   </div>`).join('');
+
+  }else if(q.type==='tf'){
+
+   controls=['မှန်','မှား'].map(op=>`
+   <div class="option">
+   <input type="radio" name="ans${i}" value="${op}"
+   ${val===op?'checked':''}
+   onchange="setAnswer('${q.id}',this.value)">
+   <label>${op}</label>
+   </div>`).join('');
+
+  }else{
+
+   controls=`
+   <textarea placeholder="အဖြေရေးပါ"
+   oninput="setAnswer('${q.id}',this.value)">${esc(val)}</textarea>
+   `;
+
+  }
+
+  return `
+  <div class="question" id="q_${q.id}">
+  <b>မေးခွန်း ${i+1} (${q.mark} မှတ်)</b>
+  <p>${esc(q.text)}</p>
+  ${controls}
+  </div>`;
+
+ }).join('');
+
+ startTimer();
+}
+
+function setAnswer(qid,value){
+
+ activeExam.answers[qid]=value;
+ persistAttempt();
+}
+
+function startTimer(){
+
+ clearInterval(timer);
+
+ const end=activeExam.start+
+ activeExam.exam.minutes*60000;
+
+ function tick(){
+
+  const left=Math.max(0,Math.ceil((end-Date.now())/1000));
+
+  if($('timer')){
+   $('timer').textContent=
+   String(Math.floor(left/60)).padStart(2,'0')+
+   ':'+
+   String(left%60).padStart(2,'0');
+  }
+
+  if(left<=0){
+   clearInterval(timer);
+   timer=null;
+   submitExam(true);
+  }
+ }
+
+ tick();
+ timer=setInterval(tick,1000);
+}
+
+function reviewQuiz(){
+
+ clearInterval(timer);
+ timer=null;
+
+ $('roleContent').innerHTML=`
+ <div class="box">
+ <h3>အဖြေပြန်စစ်ရန်</h3>
+ <p class="muted">အစိမ်း = ဖြေပြီး / အနီ = မဖြေရသေး</p>
+ <div class="grid">
+ ${activeExam.questions.map((q,i)=>`
+ <button class="${activeExam.answers[q.id]?'green':'danger'}"
+ onclick="backToQuestion('${q.id}')">
+ မေးခွန်း ${i+1}
+ </button>`).join('')}
+ </div>
+ <button class="green" onclick="submitExam(false)">Submit အပြီးသတ်မည်</button>
+ <button class="secondary" onclick="renderQuiz()">ဆက်ဖြေမည်</button>
+ </div>`;
+}
+
+function backToQuestion(qid){
+
+ renderQuiz();
+
+ setTimeout(()=>{
+  $('q_'+qid)?.scrollIntoView({behavior:'smooth'});
+ },100);
+}
+
+/* ================= SUBMIT AND RESULT ================= */
+
+function submitExam(auto){
+
+ if(!activeExam)return;
+
+ if(!auto&&!confirm('အဖြေများကို အပြီးသတ် Submit လုပ်မှာ သေချာပါသလား။'))
+ return;
+
+ clearInterval(timer);
+ timer=null;
+
+ const exam=activeExam.exam;
+ const questions=activeExam.questions;
+
+ let score=0;
+ let manualPending=0;
+
+ questions.forEach(q=>{
+
+  if(q.type==='essay'){
+   manualPending+=Number(q.mark);
+   return;
+  }
+
+  const given=String(activeExam.answers[q.id]||'')
+  .trim().toLowerCase();
+
+  const correct=String(q.answer||'')
+  .trim().toLowerCase();
+
+  if(given&&given===correct){
+   score+=Number(q.mark);
+  }
+
+ });
+
+ const finish=Date.now();
+ const duration=Math.max(0,Math.round(
+  (finish-activeExam.start)/60000
+ ));
+
+ const percent=exam.total?
+ score/exam.total*100:0;
+
+ const grade=
+ percent>=80?'A':
+ percent>=60?'B':
+ percent>=40?'C':'D';
+
+ const result={
+  id:newId(),
+  username:currentUser.user,
+  student:currentUser.name,
+  roll:currentUser.roll,
+  gradeName:currentUser.grade,
+  combo:currentUser.combo,
+  title:exam.title,
+  examType:exam.type,
+  subject:exam.subject,
+  start:new Date(activeExam.start).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),
+  end:new Date(finish).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),
+  duration,
+  score,
+  total:exam.total,
+  percent:Math.round(percent*100)/100,
+  grade,
+  manualPending
+ };
+
+ save(KEY.results,[...read(KEY.results),result]);
+
+ const attempts=read(KEY.attempts);
+
+ const attempt=attempts.find(a=>
+ a.examId===exam.id&&
+ a.student===currentUser.user
+ );
+
+ if(attempt){
+  attempt.status='completed';
+  attempt.end=finish;
+  attempt.answers=activeExam.answers;
+ }
+
+ save(KEY.attempts,attempts);
+
+ activeExam=null;
+
+ showResult(result);
+}
+
+function showResult(r){
+
+ $('roleContent').innerHTML=`
+ <div class="box" id="printArea">
+
+ <h3 style="text-align:center">
+ CHINDWIN FUTURE BRIGHT SCHOOL
+ </h3>
+
+ <h3 style="text-align:center">EXAM RESULT</h3>
+
+ <p>Student Name: ${esc(r.student)}</p>
+ <p>Student ID: ${esc(r.roll)}</p>
+ <p>Class: ${esc(r.gradeName)}</p>
+ <p>Examination: ${esc(r.title)}</p>
+ <p>Subject: ${esc(r.subject)}</p>
+
+ <div class="table-wrap">
+ <table>
+ <tr><th>အချက်အလက်</th><th>ရလဒ်</th></tr>
+ <tr><td>Start Time</td><td>${esc(r.start)}</td></tr>
+ <tr><td>Finish Time</td><td>${esc(r.end)}</td></tr>
+ <tr><td>Duration</td><td>${r.duration} Minutes</td></tr>
+ <tr>
+ <td>ရမှတ်</td>
+ <td>${r.score} / ${r.total}</td>
+ </tr>
+ <tr>
+ <td>Grade</td>
+ <td>${r.manualPending?'Pending (ရေးဖြေစစ်ဆေးရန်ကျန်)':r.grade}</td>
+ </tr>
+ </table>
+ </div>
+
+ <p>Principal Signature: __________________</p>
+
+ </div>
+
+ <button onclick="window.print()">ရလဒ် Print ထုတ်ရန်</button>
+ <button class="secondary" onclick="dashboard()">ပင်မစာမျက်နှာ</button>
+ `;
+
+}
+
+/* ================= RESULTS ================= */
+
+function drawMyResults(){
+
+ if(!$('myResults'))return;
+
+ const list=read(KEY.results).filter(r=>
+ r.username===currentUser.user
+ );
+
+ $('myResults').innerHTML=`
+ <div class="table-wrap">
+ <table>
+ <tr><th>စာမေးပွဲ</th><th>ဘာသာ</th><th>ရမှတ်</th><th>Grade</th></tr>
+ ${list.map(r=>`
+ <tr>
+ <td>${esc(r.title)}</td>
+ <td>${esc(r.subject)}</td>
+ <td>${r.score}/${r.total}</td>
+ <td>${r.manualPending?'Pending':r.grade}</td>
+ </tr>`).join('')||'<tr><td colspan="4">ရလဒ်မရှိသေးပါ။</td></tr>'}
+ </table>
+ </div>`;
+}
+
+/* ================= TEACHER RESULTS ================= */
+
+function showTeacherResults(){
+
+ if(currentUser.role!=='teacher')return;
+
+ const list=read(KEY.results);
+
+ $('dynamicView').innerHTML=`
+ <div class="box">
+ <h3>ရလဒ်များ</h3>
+ <div class="table-wrap">
+ <table>
+ <tr><th>အမည်</th><th>ID</th><th>အတန်း</th><th>စာမေးပွဲ</th><th>ရမှတ်</th><th>Grade</th></tr>
+ ${list.map(r=>`
+ <tr>
+ <td>${esc(r.student)}</td>
+ <td>${esc(r.roll)}</td>
+ <td>${esc(r.gradeName)}</td>
+ <td>${esc(r.title)}</td>
+ <td>${r.score}/${r.total}</td>
+ <td>${r.manualPending?'Pending':r.grade}</td>
+ </tr>`).join('')||'<tr><td colspan="6">ရလဒ်မရှိသေးပါ။</td></tr>'}
+ </table>
+ </div>
+ </div>`;
 }
 </script>
-
 </body>
-</html> 
+</html>
