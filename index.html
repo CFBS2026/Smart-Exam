@@ -111,6 +111,24 @@
             margin-bottom: 15px;
             text-align: left;
         }
+        .option-label {
+            display: flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            border: 1px solid rgba(255, 215, 0, 0.1);
+        }
+        .option-label input[type="radio"] {
+            width: auto;
+            margin: 0 10px 0 0;
+            cursor: pointer;
+        }
+        .option-label:hover {
+            background: rgba(255, 215, 0, 0.1);
+        }
         .receipt {
             background: #fff;
             color: #000;
@@ -156,8 +174,8 @@
             {user: 'student', pass: '123', role: 'student', name: 'မောင်ကျောင်းသား (Student)'}
         ]));
     }
-    if (!localStorage.getItem('questions_v7')) {
-        localStorage.setItem('questions_v7', JSON.stringify([
+    if (!localStorage.getItem('questions_v9')) {
+        localStorage.setItem('questions_v9', JSON.stringify([
             {q: 'If z1 = 6-17i, z2 = 3-bi and z1/z2 = 4-3i, then b is', optA: '1', optB: '2', optC: '3', optD: '4', ans: 'A'}
         ]));
     }
@@ -197,12 +215,27 @@
             `;
             renderView('questions');
         } else {
+            // --- STUDENT DASHBOARD (Proper Flow) ---
             document.getElementById('portalSub').innerText = 'STUDENT EXAM PORTAL';
             content.innerHTML = `
+                <div class="grid-2">
+                    <div class="menu-card"><h4>🎓 အတန်း</h4><p>Grade 12</p></div>
+                    <div class="menu-card"><h4>📚 ဘာသာရပ်</h4><p>Mathematics, English</p></div>
+                </div>
+
+                <div style="color:var(--accent-color); font-size:15px; border-bottom:1px solid rgba(255,215,0,0.2); padding-bottom:5px; margin:20px 0 10px 0;">
+                    Available Exams (ဖြေဆိုရန် စာမေးပွဲများ)
+                </div>
+
                 <div class="card-box">
-                    <h4>Available Exam: Mathematics (Grade 12)</h4>
-                    <p style="font-size:12px; color:var(--text-muted);">မေးခွန်းစာရွက်ပါ စာမေးပွဲ ဖြေဆိုရန်</p>
-                    <button onclick="startExam()">စာမေးပွဲ စတင်ဖြေဆိုမည်</button>
+                    <h4 style="color:var(--accent-color); margin:0 0 5px 0;">Mathematics (Complex Number)</h4>
+                    <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px 0;">Chapter: Complex Number | စုစုပေါင်းရမှတ်: 50 | ကြာချိန်: မိနစ် 60</p>
+                    <button onclick="startExam()">စာမေးပွဲ ဖြေဆိုမည် (Attempt Exam)</button>
+                </div>
+
+                <div class="grid-2">
+                    <div class="menu-card" onclick="renderView('myResults')"><h4>📊 My Results</h4><p>မိမိ ရလဒ်များ</p></div>
+                    <div class="menu-card" onclick="alert('Student Profile: ' + currentUser.name)"><h4>👤 My Profile</h4><p>ကိုယ်ရေးအချက်အလက်</p></div>
                 </div>
                 <div id="dynamicView"></div>
             `;
@@ -212,13 +245,13 @@
     function renderView(type) {
         let view = document.getElementById('dynamicView');
         if (type === 'questions') {
-            let qs = JSON.parse(localStorage.getItem('questions_v7')) || [];
+            let qs = JSON.parse(localStorage.getItem('questions_v9')) || [];
             let html = `
                 <div class="card-box">
                     <h4>📖 မေးခွန်းစာရွက်ပုံ တင်၍ အလိုအလျောက် ဖတ်ရန် (Batch OCR)</h4>
                     
                     <div class="ocr-box">
-                        <label><b>📷 အမှတ် ၁ မှ ၈ ပါသော မေးခွန်းပုံ တင်ပါ</b></label><br><br>
+                        <label><b>📷 မေးခွန်းပုံ တင်ပါ</b></label><br><br>
                         <input type="file" id="ocrImg" accept="image/*" onchange="processBatchOCR()">
                         <p id="ocrStatus" style="font-size:12px; color:var(--accent-color); margin-top:8px;"></p>
                     </div>
@@ -264,12 +297,15 @@
             });
             html += `</div></div>`;
             view.innerHTML = html;
-        } else if (type === 'reports') {
+        } else if (type === 'reports' || type === 'myResults') {
             let res = JSON.parse(localStorage.getItem('results'));
             let html = `<div class="card-box"><h4>📊 စာမေးပွဲ ရလဒ်များ</h4>`;
             if (res.length === 0) { html += `<p style="text-align:center;">မှတ်တမ်း မရှိသေးပါ။</p>`; }
             else {
-                res.forEach(r => { html += `<div class="q-preview-card"><b>${r.student}</b> - ရမှတ်: ${r.score}/${r.total} (${r.grade}) <br><small>${r.date}</small></div>`; });
+                res.forEach(r => {
+                    if(currentUser.role === 'student' && r.student !== currentUser.name) return;
+                    html += `<div class="q-preview-card"><b>${r.student}</b> - ဘာသာရပ်: ${r.subject} <br>ရမှတ်: ${r.score}/${r.total} (${r.grade}) <br><small>${r.date}</small></div>`;
+                });
             }
             html += `</div>`;
             view.innerHTML = html;
@@ -281,7 +317,6 @@
         return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
     }
 
-    // --- Batch OCR Parser for Multi-Question Sheets ---
     function processBatchOCR() {
         let fileInput = document.getElementById('ocrImg');
         let status = document.getElementById('ocrStatus');
@@ -298,9 +333,7 @@
         ).then(({ data: { text } }) => {
             status.innerText = '✅ မေးခွန်းစာသား ဖတ်ယူပြီးပါပြီ။';
             
-            // Clean up text and isolate first question & options from the sheet
             let cleanText = text.replace(/\r\n/g, '\n').replace(/\n+/g, ' ');
-            
             let optA = '', optB = '', optC = '', optD = '';
             
             let matchA = textMatch(cleanText, /(?:[^\w]|^)[aA][\.\)]\s*(.*?)(?=(?:[^\w]|^)[bB][\.\)]|$)/);
@@ -342,9 +375,9 @@
         
         if(!q) { alert('မေးခွန်း စာသား ဖြည့်ပါ။'); return; }
         
-        let qs = JSON.parse(localStorage.getItem('questions_v7')) || [];
+        let qs = JSON.parse(localStorage.getItem('questions_v9')) || [];
         qs.push({q, optA, optB, optC, optD, ans});
-        localStorage.setItem('questions_v7', JSON.stringify(qs));
+        localStorage.setItem('questions_v9', JSON.stringify(qs));
         
         alert('မေးခွန်း အောင်မြင်စွာ သိမ်းဆည်းပြီးပါပြီ။');
         renderView('questions');
@@ -352,15 +385,15 @@
 
     function clearQuestionBank() {
         if(confirm('မေးခွန်းများ အားလုံးကို ဖျက်ပစ်ရန် သေချာပါသလား?')) {
-            localStorage.setItem('questions_v7', JSON.stringify([]));
+            localStorage.setItem('questions_v9', JSON.stringify([]));
             renderView('questions');
         }
     }
 
-    // --- Student Exam Taking Flow ---
+    // --- Student Exam Attempt & Submit Flow ---
     function startExam() {
-        let qs = JSON.parse(localStorage.getItem('questions_v7')) || [];
-        if(qs.length === 0) { alert('မေးခွန်း မရှိသေးပါ။'); return; }
+        let qs = JSON.parse(localStorage.getItem('questions_v9')) || [];
+        if(qs.length === 0) { alert('ဖြေဆိုရန် မေးခွန်း မရှိသေးပါ။'); return; }
         
         let q = qs[0];
         document.getElementById('roleContent').innerHTML = `
@@ -368,14 +401,14 @@
                 <h3>Mathematics Exam (Google Form Style)</h3>
                 <div style="background:rgba(0,0,0,0.2); padding:15px; border-radius:10px; margin-bottom:15px;">
                     <p><b>မေးခွန်း ၁။</b> ${escapeHtml(q.q)}</p>
-                    <div style="margin-top:10px;">
-                        <label style="display:block; margin-bottom:8px; cursor:pointer;"><input type="radio" name="studentAns" value="A"> A) ${escapeHtml(q.optA || '')}</label>
-                        <label style="display:block; margin-bottom:8px; cursor:pointer;"><input type="radio" name="studentAns" value="B"> B) ${escapeHtml(q.optB || '')}</label>
-                        <label style="display:block; margin-bottom:8px; cursor:pointer;"><input type="radio" name="studentAns" value="C"> C) ${escapeHtml(q.optC || '')}</label>
-                        <label style="display:block; margin-bottom:8px; cursor:pointer;"><input type="radio" name="studentAns" value="D"> D) ${escapeHtml(q.optD || '')}</label>
+                    <div style="margin-top:15px;">
+                        <label class="option-label"><input type="radio" name="studentAns" value="A"> A) ${escapeHtml(q.optA || '')}</label>
+                        <label class="option-label"><input type="radio" name="studentAns" value="B"> B) ${escapeHtml(q.optB || '')}</label>
+                        <label class="option-label"><input type="radio" name="studentAns" value="C"> C) ${escapeHtml(q.optC || '')}</label>
+                        <label class="option-label"><input type="radio" name="studentAns" value="D"> D) ${escapeHtml(q.optD || '')}</label>
                     </div>
                 </div>
-                <button onclick="submitExam()">အဖြေတင်သွင်းမည် (Submit Form)</button>
+                <button onclick="submitExam()">အဖြေတင်သွင်းမည် (Submit Exam)</button>
             </div>
         `;
     }
@@ -386,12 +419,12 @@
 
         let dateStr = new Date().toLocaleDateString();
         let results = JSON.parse(localStorage.getItem('results'));
-        results.push({ student: currentUser.name, score: 50, total: 50, grade: 'A+', date: dateStr });
+        results.push({ student: currentUser.name, subject: 'Mathematics', score: 50, total: 50, grade: 'A+', date: dateStr });
         localStorage.setItem('results', JSON.stringify(results));
 
         let slip = `CHINDWIN FUTURE BRIGHT SCHOOL
 --------------------------------
-EXAM RESULT SLIP (FORM SUBMITTED)
+EXAM RESULT SLIP (FINISHED)
 --------------------------------
 Student : ${currentUser.name}
 Subject : Mathematics
@@ -402,7 +435,7 @@ Date    : ${dateStr}
 Thermal Printer Ready`;
 
         document.getElementById('roleContent').innerHTML = `
-            <p style="color: #69F0AE; text-align: center; font-weight: bold; font-size:16px;">စာမေးပွဲ ဖြေဆိုပြီးစီးပါပြီ!</p>
+            <p style="color: #69F0AE; text-align: center; font-weight: bold; font-size:16px;">စာမေးပွဲ ဖြေဆိုပြီးစီးပါပြီ (Finished)!</p>
             <div class="receipt">${slip}</div>
             <button onclick="window.print()" style="background-color: #69F0AE; color: #0A192F;">🖨️ 2-inch Thermal Printer ဖြင့် Print ထုတ်မည်</button>
             <button onclick="loadDashboard()" style="margin-top:10px;">ပင်မစာမျက်နှာသို့ ပြန်ရန်</button>
@@ -414,6 +447,7 @@ Thermal Printer Ready`;
         document.getElementById('loginUser').value = '';
         document.getElementById('loginPass').value = '';
         document.getElementById('loginMsg').innerText = '';
+        document.getElementById('portalSub').innerText = 'SMART EXAMINATION SYSTEM';
         document.getElementById('dashboardSection').classList.add('hidden');
         document.getElementById('loginSection').classList.remove('hidden');
     }
