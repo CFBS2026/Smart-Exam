@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CHINDWIN FUTURE BRIGHT SCHOOL - Smart Exam System</title>
 
-    <!-- Tesseract.js (OCR Library) -->
+    <!-- Tesseract.js (OCR Engine) -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
     <style>
@@ -80,7 +80,7 @@
             padding: 15px 10px;
             border-radius: 10px;
             border: 1px solid rgba(255,215,0,0.2);
-            text-align: center;
+            text-align: left;
             cursor: pointer;
             transition: 0.2s;
         }
@@ -88,12 +88,31 @@
             border-color: var(--accent-color);
             transform: translateY(-2px);
         }
+        .menu-card h4 {
+            margin: 0 0 4px 0;
+            color: #FFFFFF;
+            font-size: 15px;
+            text-align: left;
+        }
+        .menu-card p {
+            margin: 0;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        .section-title {
+            color: var(--accent-color);
+            font-size: 15px;
+            border-bottom: 1px solid rgba(255,215,0,0.2);
+            padding-bottom: 5px;
+            margin: 20px 0 10px 0;
+        }
         .card-box {
             background: var(--card-sub);
             padding: 15px;
             border-radius: 10px;
             margin-bottom: 15px;
             border: 1px solid rgba(255,215,0,0.2);
+            text-align: left;
         }
         .ocr-box {
             border: 2px dashed var(--accent-color);
@@ -123,11 +142,26 @@
         .option-item input[type="radio"] {
             width: 18px;
             height: 18px;
-            margin-right: 10px;
+            margin-right: 12px;
             accent-color: var(--accent-color);
             cursor: pointer;
         }
         .option-item label { cursor: pointer; width: 100%; }
+        
+        @media print {
+            body * { visibility: hidden; }
+            .printable-receipt, .printable-receipt * { visibility: visible; }
+            .printable-receipt {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 58mm;
+                background: #fff;
+                color: #000;
+                font-family: monospace;
+                padding: 5px;
+            }
+        }
         .receipt {
             background: #fff;
             color: #000;
@@ -137,6 +171,18 @@
             white-space: pre-wrap;
             margin-top: 15px;
         }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 13px;
+        }
+        th, td {
+            border: 1px solid rgba(255,215,0,0.3);
+            padding: 8px;
+            text-align: left;
+        }
+        th { color: var(--accent-color); }
     </style>
 </head>
 <body>
@@ -145,7 +191,7 @@
     <h2>CHINDWIN FUTURE BRIGHT SCHOOL</h2>
     <div class="subtitle" id="portalSub">SMART EXAMINATION SYSTEM</div>
 
-    <!-- 1. Login Section -->
+    <!-- 1. Login Screen -->
     <div id="loginSection">
         <h3>အကောင့်ဝင်ရန် (Login)</h3>
         <label>Username</label>
@@ -156,7 +202,7 @@
         <p id="loginMsg" style="color: #ff6b6b; text-align: center;"></p>
     </div>
 
-    <!-- 2. Dashboard Section -->
+    <!-- 2. Main Dashboard Container -->
     <div id="dashboardSection" class="hidden">
         <h3 id="welcomeText" style="color: #69F0AE;"></h3>
         <div id="roleContent"></div>
@@ -165,20 +211,23 @@
 </div>
 
 <script>
-    // System Database Initialization
+    // Database Initialization
     if (!localStorage.getItem('users')) {
         localStorage.setItem('users', JSON.stringify([
             {user: 'principal', pass: '123', role: 'principal', name: 'ကျောင်းအုပ်ကြီး'},
-            {user: 'teacher', pass: '123', role: 'teacher', name: 'ဆရာမကြီး'},
+            {user: 'teacher', pass: '123', role: 'teacher', name: 'ဦးဆောင်ဆရာမ'},
             {user: 'student', pass: '123', role: 'student', name: 'မောင်ကျောင်းသား', subject: 'Mathematics'}
         ]));
     }
-    if (!localStorage.getItem('questions_v12')) {
-        localStorage.setItem('questions_v12', JSON.stringify([
+    if (!localStorage.getItem('questions_v15')) {
+        localStorage.setItem('questions_v15', JSON.stringify([
             {id: 1, sub: 'Mathematics', q: 'If z1 = 6-17i, z2 = 3-bi and z1/z2 = 4-3i, then b is', optA: '1', optB: '2', optC: '3', optD: '4', ans: 'A'},
             {id: 2, sub: 'Mathematics', q: 'The equation of the sphere is x^2 + y^2 + z^2 + 6x - 2y + 2z - 5 = 0. Then the radius is?', optA: '3', optB: '4', optC: '5', optD: '6', ans: 'B'}
         ]));
     }
+    if (!localStorage.getItem('exams')) localStorage.setItem('exams', JSON.stringify([
+        {title: 'Mathematics Monthly Exam', subject: 'Mathematics', marks: '100', duration: '60 mins'}
+    ]));
     if (!localStorage.getItem('results')) localStorage.setItem('results', JSON.stringify([]));
 
     let currentUser = null;
@@ -194,10 +243,10 @@
             currentUser = found;
             document.getElementById('loginSection').classList.add('hidden');
             document.getElementById('dashboardSection').classList.remove('hidden');
-            document.getElementById('welcomeText',).innerText = `မင်္ဂလာပါ၊ ${currentUser.name} (${currentUser.role.toUpperCase()})`;
+            document.getElementById('welcomeText').innerText = `မင်္ဂလာပါ၊ ${currentUser.name} (${currentUser.role.toUpperCase()})`;
             loadDashboard();
         } else {
-            document.getElementById('loginMsg',).innerText = 'Username သို့မဟုတ် Password မှားယွင်းနေပါသည်။';
+            document.getElementById('loginMsg').innerText = 'Username သို့မဟုတ် Password မှားယွင်းနေပါသည်။';
         }
     }
 
@@ -206,143 +255,202 @@
         content.innerHTML = '';
 
         if (currentUser.role === 'principal') {
-            document.getElementById('portalSub').innerText = 'PRINCIPAL PORTAL';
-            content.innerHTML = `
-                <div class="card-box">
-                    <h4>👨‍🏫 ဆရာ/ဆရာမ အကောင့်အသစ် ဖန်တီးရန်</h4>
-                    <label>Username</label><input type="text" id="tUser" placeholder="teacher2">
-                    <label>Password</label><input type="password" id="tPass" placeholder="123">
-                    <label>ဆရာ/မ အမည်</label><input type="text" id="tName" placeholder="ဦးဆောင်ဆရာမ">
-                    <button onclick="createTeacherAccount()">ဆရာအကောင့် ဖန်တီးမည်</button>
-                </div>
-                <div class="card-box">
-                    <h4>📋 ဆရာ/မ စာရင်း</h4>
-                    <ul>` + JSON.parse(localStorage.getItem('users')).filter(x => x.role === 'teacher').map(t => `<li>${t.name} (${t.user})</li>`).join('') + `</ul>
-                </div>
-            `;
-        } else if (currentUser.role === 'teacher') {
-            document.getElementById('portalSub').innerText = 'TEACHER PORTAL (Multi-Question Batch OCR)';
+            document.getElementById('portalSub').innerText = 'PRINCIPAL ADMINISTRATION';
             content.innerHTML = `
                 <div class="grid-2">
-                    <div class="menu-card" onclick="renderTeacherView('studentAcc')"><h4>👤 ကျောင်းသားအကောင့် ဖန်တီးရန်</h4></div>
-                    <div class="menu-card" onclick="renderTeacherView('ocrBank')"><h4>📷 OCR မေးခွန်းဘဏ်</h4></div>
+                    <div class="menu-card" onclick="renderView('studentMgmt')"><h4>👥 Students</h4><p>ကျောင်းသား စာရင်း</p></div>
+                    <div class="menu-card" onclick="renderView('teacherMgmt')"><h4>🎓 Teachers</h4><p>ဆရာ/ဆရာမ စာရင်း</p></div>
+                    <div class="menu-card" onclick="renderView('exams')"><h4>📋 Examinations</h4><p>စာမေးပွဲများ</p></div>
+                    <div class="menu-card" onclick="renderView('questions')"><h4>📖 Question Bank</h4><p>မေးခွန်းဘဏ် (OCR)</p></div>
                 </div>
-                <div id="teacherDynamicView"></div>
+                <div id="dynamicView"></div>
             `;
-            renderTeacherView('ocrBank');
+        } else if (currentUser.role === 'teacher') {
+            document.getElementById('portalSub').innerText = 'CFBS TEACHER PANEL - EXAM MANAGEMENT';
+            content.innerHTML = `
+                <div class="card-box" style="background:rgba(255,215,0,0.05);">
+                    <b>ဆရာ/မ အမည်:</b> ${currentUser.name} <br><b>တာဝန်ယူမှု:</b> Grade 12 Mathematics
+                </div>
+                <div class="grid-2">
+                    <div class="menu-card" onclick="renderView('studentMgmt')"><h4>👥 Students</h4><p>ကျောင်းသားစာရင်း စစ်ဆေးရန်</p></div>
+                    <div class="menu-card" onclick="renderView('questions')"><h4>📖 Question Bank</h4><p>မေးခွန်းဘဏ် (OCR ဖတ်ရန်)</p></div>
+                    <div class="menu-card" onclick="renderView('createExam')"><h4>✍️ Create Exam</h4><p>စာမေးပွဲဖန်တီးရန်</p></div>
+                    <div class="menu-card" onclick="renderView('backup')"><h4>📥 Import / Export</h4><p>မေးခွန်းဖိုင် ပို့ရန်/ယူရန်</p></div>
+                    <div class="menu-card" onclick="renderView('reports')"><h4>📊 Exam Results</h4><p>စာမေးပွဲ ရလဒ်များ</p></div>
+                    <div class="menu-card" onclick="renderView('subjects')"><h4>📚 Subjects & Chapters</h4><p>ဘာသာရပ်နှင့်အခန်းများ</p></div>
+                    <div class="menu-card" onclick="renderView('schedule')"><h4>📅 Exam Schedule</h4><p>စာမေးပွဲအချိန်ဇယား</p></div>
+                    <div class="menu-card" onclick="alert('Settings menu active')"><h4>⚙️ Settings</h4><p>စနစ်သတ်မှတ်ချက်</p></div>
+                </div>
+                <div id="dynamicView"></div>
+            `;
+            renderView('questions'); // Default view
         } else if (currentUser.role === 'student') {
             document.getElementById('portalSub').innerText = 'STUDENT EXAM PORTAL';
-            let qs = JSON.parse(localStorage.getItem('questions_v12')) || [];
+            let qs = JSON.parse(localStorage.getItem('questions_v15')) || [];
             let subjects = [...new Set(qs.map(q => q.sub))];
+            if (subjects.length === 0) subjects = ['Mathematics'];
 
             content.innerHTML = `
+                <div class="grid-2">
+                    <div class="menu-card"><h4>🎓 အတန်း</h4><p>Grade 12</p></div>
+                    <div class="menu-card"><h4>📚 ဘာသာရပ်</h4><p>Mathematics, English</p></div>
+                </div>
+                
+                <div class="section-title">Available Exams (ဖြေဆိုရန် စာမေးပွဲများ)</div>
+
                 <div class="card-box">
-                    <h4>📚 စာမေးပွဲနှင့် ဘာသာရပ် ရွေးချယ်ရန်</h4>
-                    <label><b>ဘာသာရပ် ရွေးချယ်ပါ</b></label>
+                    <label><b>ဘာသာရပ် ရွေးချယ်ပါ (Select Subject)</b></label>
                     <select id="examSub">
                         ${subjects.map(s => `<option value="${s}">${s}</option>`).join('')}
                     </select>
                     <button onclick="startAttemptQuiz()" style="background:#69F0AE; color:#0A192F; font-size:16px;">🚀 Attempt Quiz (စာမေးပွဲစတင်မည်)</button>
                 </div>
+
                 <div class="grid-2">
-                    <div class="menu-card" onclick="renderStudentResults()">📊 မိမိ ရလဒ်များ</div>
-                    <div class="menu-card" onclick="alert('Student Profile: ' + currentUser.name)">👤 ကိုယ်ရေးအချက်အလက်</div>
+                    <div class="menu-card" onclick="renderView('myResults')"><h4>📊 My Results</h4><p>မိမိ ရလဒ်များ</p></div>
+                    <div class="menu-card" onclick="alert('Student Profile: ' + currentUser.name)"><h4>👤 My Profile</h4><p>ကိုယ်ရေးအချက်အလက်</p></div>
                 </div>
-                <div id="studentDynamicView"></div>
+                <div id="dynamicView"></div>
             `;
         }
     }
 
-    function createTeacherAccount() {
-        let user = document.getElementById('tUser').value.trim();
-        let pass = document.getElementById('tPass').value.trim();
-        let name = document.getElementById('tName').value.trim();
-        if(!user || !pass || !name) { alert('အချက်အလက် အပြည့်အစုံ ဖြည့်ပါ။'); return; }
-        
-        let users = JSON.parse(localStorage.getItem('users'));
-        users.push({user, pass, role: 'teacher', name});
-        localStorage.setItem('users', JSON.stringify(users));
-        alert('ဆရာ/မ အကောင့် အောင်မြင်စွာ ဖန်တီးပြီးပါပြီ။');
-        loadDashboard();
-    }
+    // --- DYNAMIC MODULES ROUTING ---
+    function renderView(type) {
+        let view = document.getElementById('dynamicView');
+        if (!view) return;
 
-    function renderTeacherView(type) {
-        let view = document.getElementById('teacherDynamicView');
-        if (type === 'studentAcc') {
+        if (type === 'questions') {
+            let qs = JSON.parse(localStorage.getItem('questions_v15')) || [];
+            view.innerHTML = `
+                <div class="card-box">
+                    <h4>📖 Batch OCR မေးခွန်းများ အလိုအလျောက် ဖတ်ယူရန်</h4>
+                    <div class="ocr-box">
+                        <label><b>📷 မေးခွန်းပါသော စာရွက်ပုံ တင်ပါ (အမှတ် ၁ မှ ၈ ပါ စာရွက်ပုံ)</b></label><br><br>
+                        <input type="file" id="ocrImg" accept="image/*" onchange="processBatchOCRQuestions()">
+                        <p id="ocrStatus" style="font-size:12px; color:var(--accent-color); margin-top:8px;"></p>
+                    </div>
+                    
+                    <label><b>မေးခွန်းစာသား (ကိုယ်တိုင်ထည့်ရန်)</b></label>
+                    <textarea id="qText" rows="3" placeholder="မေးခွန်းစာသား"></textarea>
+                    
+                    <div class="grid-2">
+                        <div><label>Option A</label><input type="text" id="qOptA"></div>
+                        <div><label>Option B</label><input type="text" id="qOptB"></div>
+                    </div>
+                    <div class="grid-2">
+                        <div><label>Option C</label><input type="text" id="qOptC"></div>
+                        <div><label>Option D</label><input type="text" id="qOptD"></div>
+                    </div>
+
+                    <label><b>မှန်ကန်သော အဖြေ</b></label>
+                    <select id="qAns"><option value="A">Option A</option><option value="B">Option B</option><option value="C">Option C</option><option value="D">Option D</option></select>
+
+                    <button onclick="saveManualQuestion()">➕ မေးခွန်း သိမ်းဆည်းမည်</button>
+                    <button onclick="clearQuestions()" style="background:#ff6b6b; color:#fff; margin-top:5px;">မေးခွန်းများ အားလုံးဖျက်မည်</button>
+                    
+                    <h4 style="margin-top:20px;">သိမ်းဆည်းထားသော မေးခွန်းများ (${qs.length})</h4>
+                    <div id="extractedList">
+                        ${qs.map((q, i) => `<div class="q-card"><b>${i+1}. [${q.sub}] ${escapeHtml(q.q)}</b><br><small>A) ${q.optA} | B) ${q.optB} | C) ${q.optC} | D) ${q.optD} [အမှန်: ${q.ans}]</small></div>`).join('')}
+                    </div>
+                </div>`;
+        } else if (type === 'studentMgmt') {
+            let users = JSON.parse(localStorage.getItem('users'));
             view.innerHTML = `
                 <div class="card-box">
                     <h4>🎓 ကျောင်းသားအကောင့် အသစ်ဖန်တီးရန်</h4>
                     <label>Username</label><input type="text" id="sUser" placeholder="student2">
                     <label>Password</label><input type="password" id="sPass" placeholder="123">
                     <label>ကျောင်းသား အမည်</label><input type="text" id="sName" placeholder="မောင်ဖြိုး">
-                    <label>ဘာသာရပ်</label><input type="text" id="sSub" value="Mathematics">
-                    <button onclick="createStudentAccount()">ကျောင်းသားအကောင့် ဖန်တီးမည်</button>
+                    <button onclick="createAccount('student')">ကျောင်းသားအကောင့် ဖန်တီးမည်</button>
                     <h4 style="margin-top:15px;">ကျောင်းသား စာရင်းများ</h4>
-                    <ul>` + JSON.parse(localStorage.getItem('users')).filter(x => x.role === 'student').map(s => `<li>${s.name} (${s.user})</li>`).join('') + `</ul>
+                    <ul>` + users.filter(x => x.role === 'student').map(s => `<li>${s.name} (${s.user})</li>`).join('') + `</ul>
                 </div>`;
-        } else if (type === 'ocrBank') {
-            let qs = JSON.parse(localStorage.getItem('questions_v12')) || [];
+        } else if (type === 'teacherMgmt') {
+            let users = JSON.parse(localStorage.getItem('users'));
             view.innerHTML = `
                 <div class="card-box">
-                    <h4>📖 Batch OCR မေးခွန်းများ အလိုအလျောက် ထုတ်ယူရန်</h4>
-                    <div class="ocr-box">
-                        <label><b>📷 မေးခွန်းပါသော စာရွက်ပုံ တင်ပါ (အမှတ် ၁ မှ ၈ အထိ ပါဝင်သောပုံ)</b></label><br><br>
-                        <input type="file" id="ocrImg" accept="image/*" onchange="processBatchOCRQuestions()">
-                        <p id="ocrStatus" style="font-size:12px; color:var(--accent-color); margin-top:8px;"></p>
-                    </div>
-                    <label>ဘာသာရပ်</label><input type="text" id="qSub" value="Mathematics">
-                    
-                    <button onclick="clearQuestions()" style="background:#ff6b6b; color:#fff; margin-top:10px;">မေးခွန်းများ အားလုံးဖျက်မည်</button>
-                    <h4 style="margin-top:15px;">သိမ်းဆည်းပြီး မေးခွန်းများ (${qs.length})</h4>
-                    <div id="extractedList">
-                        ${qs.map((q, i) => `<div class="q-card"><b>${i+1}. [${q.sub}] ${escapeHtml(q.q)}</b><br><small>A) ${q.optA} | B) ${q.optB} | C) ${q.optC} | D) ${q.optD} [အမှန်: ${q.ans}]</small></div>`).join('')}
-                    </div>
+                    <h4>👨‍🏫 ဆရာ/ဆရာမ အကောင့်အသစ် ဖန်တီးရန်</h4>
+                    <label>Username</label><input type="text" id="tUser" placeholder="teacher2">
+                    <label>Password</label><input type="password" id="tPass" placeholder="123">
+                    <label>ဆရာ/မ အမည်</label><input type="text" id="tName" placeholder="ဒေါ်လှလှ">
+                    <button onclick="createAccount('teacher')">ဆရာအကောင့် ဖန်တီးမည်</button>
+                    <h4 style="margin-top:15px;">ဆရာ/မ စာရင်းများ</h4>
+                    <ul>` + users.filter(x => x.role === 'teacher').map(t => `<li>${t.name} (${t.user})</li>`).join('') + `</ul>
                 </div>`;
+        } else if (type === 'createExam') {
+            view.innerHTML = `<div class="card-box"><h4>✍️ စာမေးပွဲအသစ် ဖန်တီးရန်</h4>
+                <input type="text" id="exTitle" placeholder="စာမေးပွဲခေါင်းစဉ်">
+                <input type="text" id="exSub" placeholder="ဘာသာရပ်">
+                <input type="text" id="exMarks" placeholder="စုစုပေါင်းရမှတ်">
+                <button onclick="saveExam()">စာမေးပွဲ သိမ်းဆည်းမည်</button></div>`;
+        } else if (type === 'reports' || type === 'myResults') {
+            let res = JSON.parse(localStorage.getItem('results'));
+            let html = `<div class="card-box"><h4>📊 စာမေးပွဲ ရလဒ်များ</h4>`;
+            if (res.length === 0) { html += `<p style="text-align:center;">မှတ်တမ်း မရှိသေးပါ။</p>`; }
+            else {
+                html += `<table><tr><th>ကျောင်းသား</th><th>ဘာသာရပ်</th><th>ရမှတ်</th><th>ဂရိတ်</th></tr>`;
+                res.forEach(r => {
+                    if(currentUser.role === 'student' && r.student !== currentUser.name) return;
+                    html += `<tr><td>${r.student}</td><td>${r.subject}</td><td>${r.score}/${r.total}</td><td>${r.grade}</td></tr>`;
+                });
+                html += `</table>`;
+            }
+            html += `</div>`;
+            view.innerHTML = html;
+        } else if (type === 'backup') {
+            view.innerHTML = `<div class="card-box"><h4>⚙️ Import / Export Database</h4>
+                <p style="font-size:12px; color:var(--text-muted);">မေးခွန်းများနှင့် အချက်အလက်များကို JSON ဖိုင်ဖြင့် ထုတ်ယူ/သိမ်းဆည်းနိုင်ပါသည်။</p>
+                <button onclick="exportData()">Export Database (JSON)</button></div>`;
+        } else if (type === 'subjects') {
+            view.innerHTML = `<div class="card-box"><h4>📚 Subjects & Chapters</h4><p>Grade 12: Mathematics (Complex Number, Spheres, Circles)</p></div>`;
+        } else if (type === 'schedule') {
+            view.innerHTML = `<div class="card-box"><h4>📅 Exam Schedule</h4><p>Mathematics Exam: 10:00 AM - 11:00 AM</p></div>`;
+        } else if (type === 'exams') {
+            let ex = JSON.parse(localStorage.getItem('exams'));
+            view.innerHTML = `<div class="card-box"><h4>📋 စာမေးပွဲ စာရင်းများ</h4><ul>` + ex.map(e => `<li>${e.title} (${e.subject})</li>`).join('') + `</ul></div>`;
         }
     }
 
-    function createStudentAccount() {
-        let user = document.getElementById('sUser').value.trim();
-        let pass = document.getElementById('sPass').value.trim();
-        let name = document.getElementById('sName').value.trim();
-        let subject = document.getElementById('sSub').value.trim();
-        if(!user || !pass || !name) { alert('အချက်အလက် ဖြည့်ပါ။'); return; }
-        
+    function createAccount(role) {
+        let uInput = role === 'teacher' ? 'tUser' : 'sUser';
+        let pInput = role === 'teacher' ? 'tPass' : 'sPass';
+        let nInput = role === 'teacher' ? 'tName' : 'sName';
+        let u = document.getElementById(uInput).value.trim();
+        let p = document.getElementById(pInput).value.trim();
+        let n = document.getElementById(nInput).value.trim();
+
+        if(!u || !p || !n) { alert('အချက်အလက် ဖြည့်ပါ။'); return; }
         let users = JSON.parse(localStorage.getItem('users'));
-        users.push({user, pass, role: 'student', name, subject});
+        users.push({user: u, pass: p, role: role, name: n, subject: 'Mathematics'});
         localStorage.setItem('users', JSON.stringify(users));
-        alert('ကျောင်းသားအကောင့် အောင်မြင်စွာ ဖန်တီးပြီးပါပြီ။');
-        renderTeacherView('studentAcc');
+        alert('အကောင့် အောင်မြင်စွာ ဖန်တီးပြီးပါပြီ။');
+        renderView(role === 'teacher' ? 'teacherMgmt' : 'studentMgmt');
     }
 
-    // --- SMART BATCH OCR (Extracts ALL Questions 1-8 Automatically) ---
+    // --- BATCH OCR PROCESSOR ---
     function processBatchOCRQuestions() {
         let fileInput = document.getElementById('ocrImg');
         let status = document.getElementById('ocrStatus');
-        let sub = document.getElementById('qSub').value.trim() || 'Mathematics';
-
         if (fileInput.files.length === 0) return;
-        status.innerText = '⏳ ပုံထဲပါ မေးခွန်းအားလုံးကို OCR ဖတ်ယူနေပါသည်...';
+
+        status.innerText = '⏳ မေးခွန်းပါသော စာရွက်ပုံထဲမှ မေးခွန်းအားလုံးကို OCR ဖတ်ယူနေပါသည်...';
 
         Tesseract.recognize(fileInput.files[0], 'eng', {
-            logger: m => { if(m.status === 'recognizing text') status.innerText = `⏳ ဖတ်နေမှု: ${Math.round(m.progress * 100)}%`; }
+            logger: m => { if(m.status === 'recognizing text') status.innerText = `⏳ ဖတ်ရှုမှု: ${Math.round(m.progress * 100)}%`; }
         }).then(({ data: { text } }) => {
-            status.innerText = '✅ မေးခွန်းအားလုံး အောင်မြင်စွာ ထုတ်ယူပြီးပါပြီ။';
-            
-            // Split text by question numbers (e.g., 1., 2., 3., etc.)
+            status.innerText = '✅ မေးခွန်းများ ဖတ်ယူပြီးပါပြီ။';
             let rawParts = text.split(/(?=\b\d+\.\s+)/);
-            let extractedQuestions = [];
+            let extracted = [];
 
             rawParts.forEach(part => {
                 let clean = part.trim();
                 if (clean.length > 10) {
-                    // Try to separate question text and options A, B, C, D
                     let optA = extractOption(clean, 'A');
                     let optB = extractOption(clean, 'B');
                     let optC = extractOption(clean, 'C');
                     let optD = extractOption(clean, 'D');
 
-                    // Remove question number prefix and options from question body
                     let qBody = clean.replace(/^\d+\.\s*/, '')
                                      .replace(/[aA][\.\)].*?(?=[bB][\.\)]|$)/g, '')
                                      .replace(/[bB][\.\)].*?(?=[cC][\.\)]|$)/g, '')
@@ -351,34 +459,30 @@
                                      .trim();
 
                     if (qBody.length > 3) {
-                        extractedQuestions.push({
-                            id: extractedQuestions.length + 1,
-                            sub: sub,
+                        extracted.push({
+                            id: Date.now() + Math.random(),
+                            sub: 'Mathematics',
                             q: qBody,
-                            optA: optA || 'Option A',
-                            optB: optB || 'Option B',
-                            optC: optC || 'Option C',
-                            optD: optD || 'Option D',
-                            ans: 'A' // Default correct answer
+                            optA: optA || '1',
+                            optB: optB || '2',
+                            optC: optC || '3',
+                            optD: optD || '4',
+                            ans: 'A'
                         });
                     }
                 }
             });
 
-            if (extractedQuestions.length > 0) {
-                let qs = JSON.parse(localStorage.getItem('questions_v12')) || [];
-                // Append new extracted questions
-                extractedQuestions.forEach(eq => qs.push(eq));
-                localStorage.setItem('questions_v12', JSON.stringify(qs));
-                alert(`အောင်မြင်ပါသည်! မေးခွန်း ${extractedQuestions.length} ပုဒ် အလိုအလျောက် ဝင်ရောက်သွားပါပြီ။`);
-                renderTeacherView('ocrBank');
+            if (extracted.length > 0) {
+                let qs = JSON.parse(localStorage.getItem('questions_v15')) || [];
+                extracted.forEach(eq => qs.push(eq));
+                localStorage.setItem('questions_v15', JSON.stringify(qs));
+                alert(`မေးခွန်း ${extracted.length} ပုဒ် အလိုအလျောက် ဝင်ရောက်သွားပါပြီ။`);
+                renderView('questions');
             } else {
-                alert('မေးခွန်းများကို ပုံစံခွဲထုတ်၍ မရပါ။ ကျေးဇူးပြု၍ ရှင်းလင်းသောပုံကို တင်ပါ။');
+                alert('မေးခွန်း စာသားများကို သီးခြား ခွဲထုတ်၍ မရပါ။');
             }
-        }).catch(err => {
-            status.innerText = '❌ OCR ဖတ်ရှုရာတွင် အမှားရှိသည်။';
-            console.error(err);
-        });
+        }).catch(err => { status.innerText = '❌ OCR ဖတ်ရှုရာတွင် အမှားရှိသည်။'; });
     }
 
     function extractOption(text, optChar) {
@@ -387,52 +491,97 @@
         return m ? m[1].trim() : '';
     }
 
+    function saveManualQuestion() {
+        let q = document.getElementById('qText').value.trim();
+        let optA = document.getElementById('qOptA').value.trim();
+        let optB = document.getElementById('qOptB').value.trim();
+        let optC = document.getElementById('qOptC').value.trim();
+        let optD = document.getElementById('qOptD').value.trim();
+        let ans = document.getElementById('qAns').value;
+        if(!q) { alert('မေးခွန်းဖြည့်ပါ။'); return; }
+
+        let qs = JSON.parse(localStorage.getItem('questions_v15')) || [];
+        qs.push({id: Date.now(), sub: 'Mathematics', q, optA, optB, optC, optD, ans});
+        localStorage.setItem('questions_v15', JSON.stringify(qs));
+        alert('မေးခွန်း သိမ်းပြီးပါပြီ။');
+        renderView('questions');
+    }
+
     function clearQuestions() {
         if(confirm('မေးခွန်းအားလုံး ဖျက်မည်မှာ သေချာပါသလား?')) {
-            localStorage.setItem('questions_v12', JSON.stringify([]));
-            renderTeacherView('ocrBank');
+            localStorage.setItem('questions_v15', JSON.stringify([]));
+            renderView('questions');
         }
     }
 
-    // --- STUDENT ATTEMPT QUIZ (Multi-Questions Scroll View) ---
+    function saveExam() {
+        let title = document.getElementById('exTitle').value;
+        let subject = document.getElementById('exSub').value;
+        let marks = document.getElementById('exMarks').value;
+        if(!title) return;
+        let exams = JSON.parse(localStorage.getItem('exams'));
+        exams.push({title, subject, marks});
+        localStorage.setItem('exams', JSON.stringify(exams));
+        alert('စာမေးပွဲ ဖန်တီးပြီးပါပြီ။');
+    }
+
+    function exportData() {
+        let dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(localStorage));
+        let dlAnchor = document.createElement('a');
+        dlAnchor.setAttribute("href", dataStr);
+        dlAnchor.setAttribute("download", "cfbs_exam_backup.json");
+        dlAnchor.click();
+    }
+
+    // --- STUDENT EXAM FLOW (Scroll Multi-Questions -> Finished -> Review -> Final Submit) ---
     function startAttemptQuiz() {
         let selectedSub = document.getElementById('examSub').value;
-        let qs = (JSON.parse(localStorage.getItem('questions_v12')) || []).filter(q => q.sub === selectedSub);
-        
-        if(qs.length === 0) { alert('ဤဘာသာရပ်အတွက် မေးခွန်း မရှိသေးပါ။'); return; }
-        
-        studentAnswers = {}; // reset
+        let qs = (JSON.parse(localStorage.getItem('questions_v15')) || []).filter(q => q.sub === selectedSub);
+        if(qs.length === 0) { alert('မေးခွန်း မရှိသေးပါ။'); return; }
+
+        studentAnswers = {}; // Reset
 
         let html = `
             <div class="card-box" style="text-align:left;">
                 <h3>📜 ${selectedSub} Exam (Scroll to Answer)</h3>
-                <p style="font-size:12px; color:var(--text-muted);">မေးခွန်းအားလုံး (${qs.length} ပုဒ်) ကို အောက်သို့ Scroll ဆွဲ၍ ဖြေဆိုပါ။ ပြီးလျှင် Finished ကိုနှိပ်ပါ။</p>
+                <p style="font-size:12px; color:var(--text-muted);">မေးခွန်းအားလုံး (${qs.length} ပုဒ်) ကို Scroll ဆွဲ၍ ဖြေဆိုပါ။ ပြီးလျှင် Finished ကိုနှိပ်ပါ။</p>
                 <form id="quizForm">`;
 
         qs.forEach((q, index) => {
             html += `
                 <div class="q-card">
                     <p><b>မေးခွန်း ${index + 1}။</b> ${escapeHtml(q.q)}</p>
-                    <div class="option-item"><input type="radio" name="q_${q.id}" value="A" onchange="storeAns(${q.id}, 'A')"><label>A) ${escapeHtml(q.optA || '')}</label></div>
-                    <div class="option-item"><input type="radio" name="q_${q.id}" value="B" onchange="storeAns(${q.id}, 'B')"><label>B) ${escapeHtml(q.optB || '')}</label></div>
-                    <div class="option-item"><input type="radio" name="q_${q.id}" value="C" onchange="storeAns(${q.id}, 'C')"><label>C) ${escapeHtml(q.optC || '')}</label></div>
-                    <div class="option-item"><input type="radio" name="q_${q.id}" value="D" onchange="storeAns(${q.id}, 'D')"><label>D) ${escapeHtml(q.optD || '')}</label></div>
+                    <div class="option-item">
+                        <input type="radio" id="optA_${q.id}" name="q_${q.id}" value="A" onchange="storeAns('${q.id}', 'A')">
+                        <label for="optA_${q.id}">A) ${escapeHtml(q.optA || '')}</label>
+                    </div>
+                    <div class="option-item">
+                        <input type="radio" id="optB_${q.id}" name="q_${q.id}" value="B" onchange="storeAns('${q.id}', 'B')">
+                        <label for="optB_${q.id}">B) ${escapeHtml(q.optB || '')}</label>
+                    </div>
+                    <div class="option-item">
+                        <input type="radio" id="optC_${q.id}" name="q_${q.id}" value="C" onchange="storeAns('${q.id}', 'C')">
+                        <label for="optC_${q.id}">C) ${escapeHtml(q.optC || '')}</label>
+                    </div>
+                    <div class="option-item">
+                        <input type="radio" id="optD_${q.id}" name="q_${q.id}" value="D" onchange="storeAns('${q.id}', 'D')">
+                        <label for="optD_${q.id}">D) ${escapeHtml(q.optD || '')}</label>
+                    </div>
                 </div>`;
         });
 
         html += `</form>
                  <button onclick="finishExam('${selectedSub}')" style="background:#FFD700; color:#0A192F; font-size:16px; margin-top:15px;">🏁 Finished (စစ်ဆေးမည်)</button>
             </div>`;
-        document.getElementById('studentDynamicView').innerHTML = html;
+        document.getElementById('roleContent').innerHTML = html;
     }
 
     function storeAns(qId, val) {
         studentAnswers[qId] = val;
     }
 
-    // --- FINISHED & REVIEW SYSTEM ---
     function finishExam(sub) {
-        let qs = (JSON.parse(localStorage.getItem('questions_v12')) || []).filter(q => q.sub === sub);
+        let qs = (JSON.parse(localStorage.getItem('questions_v15')) || []).filter(q => q.sub === sub);
         let answeredCount = Object.keys(studentAnswers).length;
         let unanswCount = qs.length - answeredCount;
 
@@ -453,14 +602,13 @@
                 <button onclick="startAttemptQuiz()" style="background:#8892B0; color:#fff; margin-top:10px;">✏️ Review (ပြန်လည်ပြင်ဆင်ရန်)</button>
                 <button onclick="confirmSubmit('${sub}')" style="background:#69F0AE; color:#0A192F; font-size:16px; margin-top:10px;">📤 Submit (နောက်ဆုံးတင်သွင်းမည်)</button>
             </div>`;
-        document.getElementById('studentDynamicView').innerHTML = reviewHtml;
+        document.getElementById('roleContent').innerHTML = reviewHtml;
     }
 
-    // --- FINAL SUBMIT & CONFIRMATION ---
     function confirmSubmit(sub) {
         if(!confirm('သင်၏ အဖြေများကို နောက်ဆုံးအကြိမ်အဖြစ် Submit လုပ်ရန် သေချာပါသလား?')) return;
 
-        let qs = (JSON.parse(localStorage.getItem('questions_v12')) || []).filter(q => q.sub === sub);
+        let qs = (JSON.parse(localStorage.getItem('questions_v15')) || []).filter(q => q.sub === sub);
         let score = 0;
         qs.forEach(q => {
             if(studentAnswers[q.id] === q.ans) score += (100 / qs.length);
@@ -486,26 +634,12 @@ Date    : ${dateStr}
 --------------------------------
 Thermal Printer Ready`;
 
-        document.getElementById('studentDynamicView').innerHTML = `
+        document.getElementById('roleContent').innerHTML = `
             <p style="color: #69F0AE; text-align: center; font-weight: bold; font-size:16px;">စာမေးပွဲ အောင်မြင်စွာ တင်သွင်းပြီးပါပြီ (Submitted)!</p>
-            <div class="receipt">${slip}</div>
+            <div class="receipt printable-receipt">${slip}</div>
             <button onclick="window.print()" style="background-color: #69F0AE; color: #0A192F;">🖨️ 2-inch Thermal Printer ဖြင့် Print ထုတ်မည်</button>
             <button onclick="loadDashboard()" style="margin-top:10px;">ပင်မစာမျက်နှာသို့ ပြန်ရန်</button>
         `;
-    }
-
-    function renderStudentResults() {
-        let res = JSON.parse(localStorage.getItem('results'));
-        let html = `<div class="card-box"><h4>📊 မိမိ၏ စာမေးပွဲ ရလဒ်များ</h4>`;
-        let myRes = res.filter(r => r.student === currentUser.name);
-        if(myRes.length === 0) { html += `<p style="text-align:center;">မှတ်တမ်း မရှိသေးပါ။</p>`; }
-        else {
-            myRes.forEach(r => {
-                html += `<div class="q-card"><b>ဘာသာရပ်: ${r.subject}</b><br>ရမှတ်: ${r.score}/${r.total} (Grade: ${r.grade})<br><small>ရက်စွဲ: ${r.date}</small></div>`;
-            });
-        }
-        html += `</div>`;
-        document.getElementById('studentDynamicView').innerHTML = html;
     }
 
     function escapeHtml(text) {
