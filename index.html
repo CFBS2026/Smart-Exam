@@ -211,36 +211,31 @@
 </div>
 
 <script>
-    // Curriculum Subject Mapping based on Grades
+    // Updated Complete Curriculum Mapping
     const curriculumSubjects = {
         "KG to Grade 5": ["မြန်မာစာ", "အင်္ဂလိပ်စာ", "သင်္ချာ", "လူမှုရေး", "သိပ္ပံ"],
         "Grade 6 to Grade 9": ["မြန်မာစာ", "အင်္ဂလိပ်စာ", "သင်္ချာ", "ပထဝီဝင်", "သမိုင်း", "သိပ္ပံ"],
-        "Grade 10-12 (ဘာသာတွဲ ၁ - သိပ္ပံ)": ["မြန်မာစာ", "အင်္ဂလိပ်စာ", "သင်္ချာ", "ရူပဗေဒ", "ဓာတုဗေဒ", "ဇီဝဗေဒ"],
-        "Grade 10-12 (ဘာသာတွဲ ၂ - ဝိဇ္ဇာ)": ["မြန်မာစာ", "အင်္ဂလိပ်စာ", "သင်္ချာ", "ပထဝီဝင်", "သမိုင်း", "ဘောဂဗေဒ"],
-        "Grade 10-12 (ဘာသာတွဲ ၃ - ဝိဇ္ဇာ/သိပ္ပံစုံ)": ["မြန်မာစာ", "အင်္ဂလိပ်စာ", "သင်္ချာ", "ပထဝီဝင်", "သိပ္ပံ", "ဘောဂဗေဒ"]
+        "Grade 10-12 (အတွဲ ၁ - သိပ္ပံ)": ["မြန်မာစာ", "အင်္ဂလိပ်စာ", "သင်္ချာ", "ဓာတုဗေဒ", "ရူပဗေဒ", "ဇီဝဗေဒ"],
+        "Grade 10-12 (အတွဲ ၂ - သိပ္ပံ/ဘောဂဗေဒ)": ["မြန်မာစာ", "အင်္ဂလိပ်စာ", "သင်္ချာ", "ဓာတုဗေဒ", "ရူပဗေဒ", "ဘောဂဗေဒ"],
+        "Grade 10-12 (အတွဲ ၃ - ဝိဇ္ဇာ/သိပ္ပံစုံ)": ["မြန်မာစာ", "အင်္ဂလိပ်စာ", "သင်္ချာ", "ပထဝီဝင်", "သမိုင်း", "သိပ္ပံ"]
     };
 
-    // Database Initialization
     if (!localStorage.getItem('users')) {
         localStorage.setItem('users', JSON.stringify([
             {user: 'principal', pass: '123', role: 'principal', name: 'ကျောင်းအုပ်ကြီး'},
             {user: 'teacher', pass: '123', role: 'teacher', name: 'ဦးဆောင်ဆရာမ'},
-            {user: 'student', pass: '123', role: 'student', name: 'မောင်ကျောင်းသား', grade: 'Grade 10-12 (ဘာသာတွဲ ၁ - သိပ္ပံ)', subject: 'သင်္ချာ'}
+            {user: 'student', pass: '123', role: 'student', name: 'မောင်ကျောင်းသား', grade: 'Grade 6 to Grade 9', roll: 'CFBS-001'}
         ]));
     }
-    if (!localStorage.getItem('questions_v17')) {
-        localStorage.setItem('questions_v17', JSON.stringify([
-            {id: 1, grade: 'Grade 6 to Grade 9', sub: 'သင်္ချာ', q: 'If z1 = 6-17i, z2 = 3-bi and z1/z2 = 4-3i, then b is', optA: '1', optB: '2', optC: '3', optD: '4', ans: 'A'},
-            {id: 2, grade: 'Grade 6 to Grade 9', sub: 'အင်္ဂလိပ်စာ', q: 'Choose the correct synonym of "Benevolent":', optA: 'Kind', optB: 'Hostile', optC: 'Cruel', optD: 'Greedy', ans: 'A'}
+    if (!localStorage.getItem('questions_v20')) {
+        localStorage.setItem('questions_v20', JSON.stringify([
+            {id: 1, grade: 'Grade 6 to Grade 9', sub: 'သင်္ချာ', q: 'If z1 = 6-17i, z2 = 3-bi and z1/z2 = 4-3i, then b is', optA: '1', optB: '2', optC: '3', optD: '4', ans: 'A'}
         ]));
     }
-    if (!localStorage.getItem('exams')) localStorage.setItem('exams', JSON.stringify([
-        {title: 'Monthly Exam', grade: 'Grade 6 to Grade 9', subject: 'သင်္ချာ', marks: '100'}
-    ]));
     if (!localStorage.getItem('results')) localStorage.setItem('results', JSON.stringify([]));
 
     let currentUser = null;
-    let studentAnswers = {};
+    let activeExamData = { questions: [], studentAnswers: {}, totalMarks: 25, subject: '' };
 
     function handleLogin() {
         let u = document.getElementById('loginUser').value.trim();
@@ -269,8 +264,7 @@
                 <div class="grid-2">
                     <div class="menu-card" onclick="renderView('studentMgmt')"><h4>👥 Students</h4><p>ကျောင်းသား စာရင်း</p></div>
                     <div class="menu-card" onclick="renderView('teacherMgmt')"><h4>🎓 Teachers</h4><p>ဆရာ/ဆရာမ စာရင်း</p></div>
-                    <div class="menu-card" onclick="renderView('exams')"><h4>📋 Examinations</h4><p>စာမေးပွဲများ</p></div>
-                    <div class="menu-card" onclick="renderView('questions')"><h4>📖 Question Bank</h4><p>မေးခွန်းဘဏ် (OCR)</p></div>
+                    <div class="menu-card" onclick="renderView('questions')"><h4>📖 Question Bank</h4><p>မေးခွန်းဘဏ် (OCR / Import)</p></div>
                 </div>
                 <div id="dynamicView"></div>
             `;
@@ -283,12 +277,8 @@
                 <div class="grid-2">
                     <div class="menu-card" onclick="renderView('studentMgmt')"><h4>👥 Students</h4><p>ကျောင်းသားစာရင်း စစ်ဆေးရန်</p></div>
                     <div class="menu-card" onclick="renderView('questions')"><h4>📖 Question Bank</h4><p>မေးခွန်းဘဏ် (OCR ဖတ်ရန်)</p></div>
-                    <div class="menu-card" onclick="renderView('createExam')"><h4>✍️ Create Exam</h4><p>စာမေးပွဲဖန်တီးရန်</p></div>
-                    <div class="menu-card" onclick="renderView('backup')"><h4>📥 Import / Export</h4><p>မေးခွန်းဖိုင် ပို့ရန်/ယူရန်</p></div>
                     <div class="menu-card" onclick="renderView('reports')"><h4>📊 Exam Results</h4><p>စာမေးပွဲ ရလဒ်များ</p></div>
-                    <div class="menu-card" onclick="renderView('subjects')"><h4>📚 Subjects & Chapters</h4><p>ဘာသာရပ်များနှင့် အတန်းများ</p></div>
-                    <div class="menu-card" onclick="renderView('schedule')"><h4>📅 Exam Schedule</h4><p>စာမေးပွဲအချိန်ဇယား</p></div>
-                    <div class="menu-card" onclick="alert('Settings menu active')"><h4>⚙️ Settings</h4><p>စနစ်သတ်မှတ်ချက်</p></div>
+                    <div class="menu-card" onclick="renderView('backup')"><h4>📥 Import / Export</h4><p>မေးခွန်းဖိုင် တင်သွင်းရန်</p></div>
                 </div>
                 <div id="dynamicView"></div>
             `;
@@ -296,22 +286,31 @@
         } else if (currentUser.role === 'student') {
             document.getElementById('portalSub').innerText = 'STUDENT EXAM PORTAL';
             let studentGrade = currentUser.grade || "Grade 6 to Grade 9";
+            let studentRoll = currentUser.roll || "CFBS-001";
             let availableSubs = curriculumSubjects[studentGrade] || ["မြန်မာစာ", "အင်္ဂလိပ်စာ", "သင်္ချာ"];
 
             content.innerHTML = `
-                <div class="grid-2">
-                    <div class="menu-card"><h4>🎓 ကျောင်းသားအတန်း</h4><p>${studentGrade}</p></div>
-                    <div class="menu-card"><h4>📚 သတ်မှတ်ဘာသာရပ်များ</h4><p>${availableSubs.join(', ')}</p></div>
+                <div class="card-box" style="background:rgba(255,215,0,0.05);">
+                    <p><b>ကျောင်းသားအမည်:</b> ${currentUser.name}</p>
+                    <p><b>အတန်းအမည်:</b> ${studentGrade}</p>
+                    <p><b>ကျောင်းဝင်အမှတ် (Roll No):</b> ${studentRoll}</p>
                 </div>
-                
-                <div class="section-title">Available Exams (ဖြေဆိုရန် ဘာသာရပ်ရွေးချယ်ရန်)</div>
 
                 <div class="card-box">
-                    <label><b>ဘာသာရပ် ရွေးချယ်ပါ (Select Subject)</b></label>
+                    <h4>📚 စာမေးပွဲ ဖြေဆိုရန် ရွေးချယ်ပါ</h4>
+                    <label><b>ဘာသာရပ် (Subject)</b></label>
                     <select id="examSub">
                         ${availableSubs.map(s => `<option value="${s}">${s}</option>`).join('')}
                     </select>
-                    <button onclick="startAttemptQuiz()" style="background:#69F0AE; color:#0A192F; font-size:16px;">🚀 Attempt Quiz (စာမေးပွဲစတင်မည်)</button>
+
+                    <label><b>မေးခွန်းအမှတ် သတ်မှတ်ချက် (Marks & Questions)</b></label>
+                    <select id="examMarks">
+                        <option value="25">25 မှတ်ဖိုး (25 ပုဒ်)</option>
+                        <option value="50">50 မှတ်ဖိုး (50 ပုဒ်)</option>
+                        <option value="100" selected>100 မှတ်ဖိုး (100 ပုဒ်)</option>
+                    </select>
+
+                    <button onclick="startAttemptQuiz()" style="background:#69F0AE; color:#0A192F; font-size:16px; margin-top:10px;">🚀 Attempt Quiz (စာမေးပွဲစတင်မည်)</button>
                 </div>
 
                 <div class="grid-2">
@@ -323,54 +322,37 @@
         }
     }
 
-    // --- DYNAMIC MODULES ROUTING ---
     function renderView(type) {
         let view = document.getElementById('dynamicView');
         if (!view) return;
 
         if (type === 'questions') {
-            let qs = JSON.parse(localStorage.getItem('questions_v17')) || [];
+            let qs = JSON.parse(localStorage.getItem('questions_v20')) || [];
             view.innerHTML = `
                 <div class="card-box">
-                    <h4>📖 Batch OCR မေးခွန်းများ အလိုအလျောက် ဖတ်ယူရန်</h4>
-                    
+                    <h4>📖 Batch OCR & JSON Import မေးခွန်းများ</h4>
                     <label><b>၁။ အတန်းအဆင့် (Grade) ရွေးချယ်ပါ</b></label>
                     <select id="qGrade" onchange="updateSubjectDropdown()">
                         <option value="KG to Grade 5">KG to Grade 5</option>
-                        <option value="Grade 6 to Grade 9">Grade 6 to Grade 9</option>
-                        <option value="Grade 10-12 (ဘာသာတွဲ ၁ - သိပ္ပံ)">Grade 10-12 (ဘာသာတွဲ ၁ - သိပ္ပံ)</option>
-                        <option value="Grade 10-12 (ဘာသာတွဲ ၂ - ဝိဇ္ဇာ)">Grade 10-12 (ဘာသာတွဲ ၂ - ဝိဇ္ဇာ)</option>
-                        <option value="Grade 10-12 (ဘာသာတွဲ ၃ - ဝိဇ္ဇာ/သိပ္ပံစုံ)">Grade 10-12 (ဘာသာတွဲ ၃ - ဝိဇ္ဇာ/သိပ္ပံစုံ)</option>
+                        <option value="Grade 6 to Grade 9" selected>Grade 6 to Grade 9</option>
+                        <option value="Grade 10-12 (အတွဲ ၁ - သိပ္ပံ)">Grade 10-12 (အတွဲ ၁ - သိပ္ပံ)</option>
+                        <option value="Grade 10-12 (အတွဲ ၂ - သိပ္ပံ/ဘောဂဗေဒ)">Grade 10-12 (အတွဲ ၂ - သိပ္ပံ/ဘောဂဗေဒ)</option>
+                        <option value="Grade 10-12 (အတွဲ ၃ - ဝိဇ္ဇာ/သိပ္ပံစုံ)">Grade 10-12 (အတွဲ ၃ - ဝိဇ္ဇာ/သိပ္ပံစုံ)</option>
                     </select>
 
                     <label><b>၂။ ဘာသာရပ် ရွေးချယ်ပါ</b></label>
-                    <select id="qSub">
-                        <!-- Populated dynamically -->
-                    </select>
+                    <select id="qSub"></select>
 
                     <div class="ocr-box">
-                        <label><b>📷 မေးခွန်းပါသော စာရွက်ပုံ တင်ပါ</b></label><br><br>
+                        <label><b>📷 မေးခွန်းပါသော စာရွက်ပုံ တင်ပါ (OCR)</b></label><br><br>
                         <input type="file" id="ocrImg" accept="image/*" onchange="processBatchOCRQuestions()">
                         <p id="ocrStatus" style="font-size:12px; color:var(--accent-color); margin-top:8px;"></p>
                     </div>
-                    
-                    <label><b>မေးခွန်းစာသား (ကိုယ်တိုင်ထည့်ရန်)</b></label>
-                    <textarea id="qText" rows="3" placeholder="မေးခွန်းစာသား"></textarea>
-                    
-                    <div class="grid-2">
-                        <div><label>Option A</label><input type="text" id="qOptA"></div>
-                        <div><label>Option B</label><input type="text" id="qOptB"></div>
-                    </div>
-                    <div class="grid-2">
-                        <div><label>Option C</label><input type="text" id="qOptC"></div>
-                        <div><label>Option D</label><input type="text" id="qOptD"></div>
-                    </div>
 
-                    <label><b>မှန်ကန်သော အဖြေ</b></label>
-                    <select id="qAns"><option value="A">Option A</option><option value="B">Option B</option><option value="C">Option C</option><option value="D">Option D</option></select>
+                    <label><b>📥 ဆရာ့ဖိုင်မှ JSON မေးခွန်းများ Import လုပ်ရန်</b></label>
+                    <input type="file" id="jsonFile" accept=".json" onchange="importJSONQuestions(event)">
 
-                    <button onclick="saveManualQuestion()">➕ မေးခွန်း သိမ်းဆည်းမည်</button>
-                    <button onclick="clearQuestions()" style="background:#ff6b6b; color:#fff; margin-top:5px;">မေးခွန်းများ အားလုံးဖျက်မည်</button>
+                    <button onclick="clearQuestions()" style="background:#ff6b6b; color:#fff; margin-top:10px;">မေးခွန်းများ အားလုံးဖျက်မည်</button>
                     
                     <h4 style="margin-top:20px;">သိမ်းဆည်းထားသော မေးခွန်းများ (${qs.length})</h4>
                     <div id="extractedList">
@@ -386,17 +368,18 @@
                     <label>Username</label><input type="text" id="sUser" placeholder="student2">
                     <label>Password</label><input type="password" id="sPass" placeholder="123">
                     <label>ကျောင်းသား အမည်</label><input type="text" id="sName" placeholder="မောင်ဖြိုး">
+                    <label>ကျောင်းဝင်အမှတ် (Roll No)</label><input type="text" id="sRoll" placeholder="CFBS-002">
                     <label>အတန်းအဆင့် (Grade)</label>
                     <select id="sGrade">
                         <option value="KG to Grade 5">KG to Grade 5</option>
                         <option value="Grade 6 to Grade 9">Grade 6 to Grade 9</option>
-                        <option value="Grade 10-12 (ဘာသာတွဲ ၁ - သိပ္ပံ)">Grade 10-12 (ဘာသာတွဲ ၁ - သိပ္ပံ)</option>
-                        <option value="Grade 10-12 (ဘာသာတွဲ ၂ - ဝိဇ္ဇာ)">Grade 10-12 (ဘာသာတွဲ ၂ - ဝိဇ္ဇာ)</option>
-                        <option value="Grade 10-12 (ဘာသာတွဲ ၃ - ဝိဇ္ဇာ/သိပ္ပံစုံ)">Grade 10-12 (ဘာသာတွဲ ၃ - ဝိဇ္ဇာ/သိပ္ပံစုံ)</option>
+                        <option value="Grade 10-12 (အတွဲ ၁ - သိပ္ပံ)">Grade 10-12 (အတွဲ ၁ - သိပ္ပံ)</option>
+                        <option value="Grade 10-12 (အတွဲ ၂ - သိပ္ပံ/ဘောဂဗေဒ)">Grade 10-12 (အတွဲ ၂ - သိပ္ပံ/ဘောဂဗေဒ)</option>
+                        <option value="Grade 10-12 (အတွဲ ၃ - ဝိဇ္ဇာ/သိပ္ပံစုံ)">Grade 10-12 (အတွဲ ၃ - ဝိဇ္ဇာ/သိပ္ပံစုံ)</option>
                     </select>
                     <button onclick="createAccount('student')">ကျောင်းသားအကောင့် ဖန်တီးမည်</button>
                     <h4 style="margin-top:15px;">ကျောင်းသား စာရင်းများ</h4>
-                    <ul>` + users.filter(x => x.role === 'student').map(s => `<li>${s.name} (${s.user}) [${s.grade || 'Grade 6-9'}]</li>`).join('') + `</ul>
+                    <ul>` + users.filter(x => x.role === 'student').map(s => `<li>${s.name} (${s.user}) - [${s.grade}] Roll: ${s.roll}</li>`).join('') + `</ul>
                 </div>`;
         } else if (type === 'teacherMgmt') {
             let users = JSON.parse(localStorage.getItem('users'));
@@ -410,12 +393,6 @@
                     <h4 style="margin-top:15px;">ဆရာ/မ စာရင်းများ</h4>
                     <ul>` + users.filter(x => x.role === 'teacher').map(t => `<li>${t.name} (${t.user})</li>`).join('') + `</ul>
                 </div>`;
-        } else if (type === 'createExam') {
-            view.innerHTML = `<div class="card-box"><h4>✍️ စာမေးပွဲအသစ် ဖန်တီးရန်</h4>
-                <input type="text" id="exTitle" placeholder="စာမေးပွဲခေါင်းစဉ်">
-                <input type="text" id="exSub" placeholder="ဘာသာရပ်">
-                <input type="text" id="exMarks" placeholder="စုစုပေါင်းရမှတ်">
-                <button onclick="saveExam()">စာမေးပွဲ သိမ်းဆည်းမည်</button></div>`;
         } else if (type === 'reports' || type === 'myResults') {
             let res = JSON.parse(localStorage.getItem('results'));
             let html = `<div class="card-box"><h4>📊 စာမေးပွဲ ရလဒ်များ</h4>`;
@@ -433,16 +410,6 @@
         } else if (type === 'backup') {
             view.innerHTML = `<div class="card-box"><h4>⚙️ Import / Export Database</h4>
                 <button onclick="exportData()">Export Database (JSON)</button></div>`;
-        } else if (type === 'subjects') {
-            view.innerHTML = `<div class="card-box"><h4>📚 Curriculum & Subjects</h4>
-                <p><b>KG to Grade 5:</b> မြန်မာ၊ အင်္ဂလိပ်၊ သင်္ချာ၊ လူမှုရေး၊ သိပ္ပံ</p>
-                <p><b>Grade 6 to Grade 9:</b> မြန်မာ၊ အင်္ဂလိပ်၊ သင်္ချာ၊ ပထဝီဝင်၊ သမိုင်း၊ သိပ္ပံ</p>
-                <p><b>Grade 10-12 (3 တွဲ):</b> သိပ္ပံ၊ ဝိဇ္ဇာ၊ ဝိဇ္ဇာ/သိပ္ပံစုံ ဘာသာတွဲများ</p></div>`;
-        } else if (type === 'schedule') {
-            view.innerHTML = `<div class="card-box"><h4>📅 Exam Schedule</h4><p>Timetable active for all grades.</p></div>`;
-        } else if (type === 'exams') {
-            let ex = JSON.parse(localStorage.getItem('exams'));
-            view.innerHTML = `<div class="card-box"><h4>📋 စာမေးပွဲ စာရင်းများ</h4><ul>` + ex.map(e => `<li>${e.title} (${e.subject})</li>`).join('') + `</ul></div>`;
         }
     }
 
@@ -464,16 +431,35 @@
         let p = document.getElementById(pInput).value.trim();
         let n = document.getElementById(nInput).value.trim();
         let grade = role === 'student' ? document.getElementById('sGrade').value : 'Grade 6 to Grade 9';
+        let roll = role === 'student' ? document.getElementById('sRoll').value.trim() : 'ADMIN';
 
         if(!u || !p || !n) { alert('အချက်အလက် ဖြည့်ပါ။'); return; }
         let users = JSON.parse(localStorage.getItem('users'));
-        users.push({user: u, pass: p, role: role, name: n, grade: grade, subject: 'မြန်မာစာ'});
+        users.push({user: u, pass: p, role: role, name: n, grade: grade, roll: roll});
         localStorage.setItem('users', JSON.stringify(users));
         alert('အကောင့် အောင်မြင်စွာ ဖန်တီးပြီးပါပြီ။');
         renderView(role === 'teacher' ? 'teacherMgmt' : 'studentMgmt');
     }
 
-    // --- BATCH OCR PROCESSOR ---
+    function importJSONQuestions(event) {
+        let file = event.target.files[0];
+        if (!file) return;
+        let reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                let imported = JSON.parse(e.target.result);
+                let qs = JSON.parse(localStorage.getItem('questions_v20')) || [];
+                imported.forEach(q => qs.push(q));
+                localStorage.setItem('questions_v20', JSON.stringify(qs));
+                alert(`ဆရာ့ဖိုင်မှ မေးခွန်း ${imported.length} ပုဒ် အောင်မြင်စွာ Import လုပ်ပြီးပါပြီ။`);
+                renderView('questions');
+            } catch(err) {
+                alert('JSON ဖိုင် ဖတ်ရှုရာတွင် အမှားအယွင်း ရှိနေပါသည်။');
+            }
+        };
+        reader.readAsText(file);
+    }
+
     function processBatchOCRQuestions() {
         let fileInput = document.getElementById('ocrImg');
         let status = document.getElementById('ocrStatus');
@@ -481,7 +467,7 @@
         let subInput = document.getElementById('qSub').value;
         if (fileInput.files.length === 0) return;
 
-        status.innerText = '⏳ မေးခွန်းစာရွက်ပုံမှ မေးခွန်းအားလုံးကို OCR ဖတ်ယူနေပါသည်...';
+        status.innerText = '⏳ မေးခွန်းစာရွက်ပုံထဲမှ မေးခွန်းအားလုံးကို OCR ဖတ်ယူနေပါသည်...';
 
         Tesseract.recognize(fileInput.files[0], 'eng', {
             logger: m => { if(m.status === 'recognizing text') status.innerText = `⏳ ဖတ်ရှုမှု: ${Math.round(m.progress * 100)}%`; }
@@ -522,9 +508,9 @@
             });
 
             if (extracted.length > 0) {
-                let qs = JSON.parse(localStorage.getItem('questions_v17')) || [];
+                let qs = JSON.parse(localStorage.getItem('questions_v20')) || [];
                 extracted.forEach(eq => qs.push(eq));
-                localStorage.setItem('questions_v17', JSON.stringify(qs));
+                localStorage.setItem('questions_v20', JSON.stringify(qs));
                 alert(`(${gradeInput} - ${subInput}) အတွက် မေးခွန်း ${extracted.length} ပုဒ် အလိုအလျောက် ဝင်ရောက်သွားပါပြီ။`);
                 renderView('questions');
             } else {
@@ -539,40 +525,11 @@
         return m ? m[1].trim() : '';
     }
 
-    function saveManualQuestion() {
-        let grade = document.getElementById('qGrade').value;
-        let sub = document.getElementById('qSub').value;
-        let q = document.getElementById('qText').value.trim();
-        let optA = document.getElementById('qOptA').value.trim();
-        let optB = document.getElementById('qOptB').value.trim();
-        let optC = document.getElementById('qOptC').value.trim();
-        let optD = document.getElementById('qOptD').value.trim();
-        let ans = document.getElementById('qAns').value;
-        if(!q) { alert('မေးခွန်းဖြည့်ပါ။'); return; }
-
-        let qs = JSON.parse(localStorage.getItem('questions_v17')) || [];
-        qs.push({id: Date.now(), grade, sub, q, optA, optB, optC, optD, ans});
-        localStorage.setItem('questions_v17', JSON.stringify(qs));
-        alert('မေးခွန်း သိမ်းပြီးပါပြီ။');
-        renderView('questions');
-    }
-
     function clearQuestions() {
         if(confirm('မေးခွန်းအားလုံး ဖျက်မည်မှာ သေချာပါသလား?')) {
-            localStorage.setItem('questions_v17', JSON.stringify([]));
+            localStorage.setItem('questions_v20', JSON.stringify([]));
             renderView('questions');
         }
-    }
-
-    function saveExam() {
-        let title = document.getElementById('exTitle').value;
-        let subject = document.getElementById('exSub').value;
-        let marks = document.getElementById('exMarks').value;
-        if(!title) return;
-        let exams = JSON.parse(localStorage.getItem('exams'));
-        exams.push({title, subject, marks});
-        localStorage.setItem('exams', JSON.stringify(exams));
-        alert('စာမေးပွဲ ဖန်တီးပြီးပါပြီ။');
     }
 
     function exportData() {
@@ -583,46 +540,62 @@
         dlAnchor.click();
     }
 
-    // --- STUDENT EXAM FLOW ---
+    // --- STUDENT ATTEMPT QUIZ ---
     function startAttemptQuiz() {
         let selectedSub = document.getElementById('examSub').value;
+        let requiredMarks = parseInt(document.getElementById('examMarks').value) || 25;
         let studentGrade = currentUser.grade || "Grade 6 to Grade 9";
         
-        let qs = (JSON.parse(localStorage.getItem('questions_v17')) || []).filter(q => q.sub === selectedSub);
-        if(qs.length === 0) { alert('ဤဘာသာရပ်အတွက် မေးခွန်း မရှိသေးပါ။'); return; }
+        let allQs = (JSON.parse(localStorage.getItem('questions_v20')) || []).filter(q => q.grade === studentGrade && q.sub === selectedSub);
+        if(allQs.length === 0) { alert(`ဤဘာသာရပ် (${selectedSub}) အတွက် မေးခွန်း မရှိသေးပါ။`); return; }
 
-        studentAnswers = {}; // Reset
+        let shuffled = allQs.sort(() => 0.5 - Math.random());
+        let selectedQs = shuffled.slice(0, requiredMarks);
+
+        activeExamData = { questions: selectedQs, studentAnswers: {}, totalMarks: requiredMarks, subject: selectedSub };
+
+        renderQuizForm();
+    }
+
+    function renderQuizForm() {
+        let selectedSub = activeExamData.subject;
+        let studentGrade = currentUser.grade || "Grade 6 to Grade 9";
+        let selectedQs = activeExamData.questions;
+        let requiredMarks = activeExamData.totalMarks;
 
         let html = `
             <div class="card-box" style="text-align:left;">
-                <h3>📜 ${selectedSub} Exam (${studentGrade})</h3>
-                <p style="font-size:12px; color:var(--text-muted);">မေးခွန်းအားလုံး (${qs.length} ပုဒ်) ကို Scroll ဆွဲ၍ ဖြေဆိုပါ။ ပြီးလျှင် Finished ကိုနှိပ်ပါ။</p>
+                <h3>📜 ${selectedSub} Exam (${studentGrade}) - ${requiredMarks} Marks</h3>
+                <p style="font-size:12px; color:var(--text-muted);">မေးခွန်း ${selectedQs.length} ပုဒ်ကို အောက်သို့ Scroll ဆွဲ၍ ဖြေဆိုပါ။ ပြီးလျှင် Finished ကိုနှိပ်ပါ။</p>
                 <form id="quizForm">`;
 
-        qs.forEach((q, index) => {
+        selectedQs.forEach((q, index) => {
+            let currentAns = activeExamData.studentAnswers[q.id] || '';
             html += `
                 <div class="q-card">
                     <p><b>မေးခွန်း ${index + 1}။</b> ${escapeHtml(q.q)}</p>
-                    <div class="option-item"><input type="radio" id="optA_${q.id}" name="q_${q.id}" value="A" onchange="storeAns('${q.id}', 'A')"><label for="optA_${q.id}">A) ${escapeHtml(q.optA || '')}</label></div>
-                    <div class="option-item"><input type="radio" id="optB_${q.id}" name="q_${q.id}" value="B" onchange="storeAns('${q.id}', 'B')"><label for="optB_${q.id}">B) ${escapeHtml(q.optB || '')}</label></div>
-                    <div class="option-item"><input type="radio" id="optC_${q.id}" name="q_${q.id}" value="C" onchange="storeAns('${q.id}', 'C')"><label for="optC_${q.id}">C) ${escapeHtml(q.optC || '')}</label></div>
-                    <div class="option-item"><input type="radio" id="optD_${q.id}" name="q_${q.id}" value="D" onchange="storeAns('${q.id}', 'D')"><label for="optD_${q.id}">D) ${escapeHtml(q.optD || '')}</label></div>
+                    <div class="option-item"><input type="radio" id="optA_${q.id}" name="q_${q.id}" value="A" ${currentAns === 'A' ? 'checked' : ''} onchange="storeAns('${q.id}', 'A')"><label for="optA_${q.id}">A) ${escapeHtml(q.optA || '')}</label></div>
+                    <div class="option-item"><input type="radio" id="optB_${q.id}" name="q_${q.id}" value="B" ${currentAns === 'B' ? 'checked' : ''} onchange="storeAns('${q.id}', 'B')"><label for="optB_${q.id}">B) ${escapeHtml(q.optB || '')}</label></div>
+                    <div class="option-item"><input type="radio" id="optC_${q.id}" name="q_${q.id}" value="C" ${currentAns === 'C' ? 'checked' : ''} onchange="storeAns('${q.id}', 'C')"><label for="optC_${q.id}">C) ${escapeHtml(q.optC || '')}</label></div>
+                    <div class="option-item"><input type="radio" id="optD_${q.id}" name="q_${q.id}" value="D" ${currentAns === 'D' ? 'checked' : ''} onchange="storeAns('${q.id}', 'D')"><label for="optD_${q.id}">D) ${escapeHtml(q.optD || '')}</label></div>
                 </div>`;
         });
 
         html += `</form>
-                 <button onclick="finishExam('${selectedSub}')" style="background:#FFD700; color:#0A192F; font-size:16px; margin-top:15px;">🏁 Finished (စစ်ဆေးမည်)</button>
+                 <button onclick="finishExam()" style="background:#FFD700; color:#0A192F; font-size:16px; margin-top:15px;">🏁 Finished (စစ်ဆေးမည်)</button>
             </div>`;
         document.getElementById('roleContent').innerHTML = html;
     }
 
     function storeAns(qId, val) {
-        studentAnswers[qId] = val;
+        if (!activeExamData.studentAnswers) activeExamData.studentAnswers = {};
+        activeExamData.studentAnswers[qId] = val;
     }
 
-    function finishExam(sub) {
-        let qs = (JSON.parse(localStorage.getItem('questions_v17')) || []).filter(q => q.sub === sub);
-        let answeredCount = Object.keys(studentAnswers).length;
+    function finishExam() {
+        let qs = activeExamData.questions;
+        if (!activeExamData.studentAnswers) activeExamData.studentAnswers = {};
+        let answeredCount = Object.keys(activeExamData.studentAnswers).length;
         let unanswCount = qs.length - answeredCount;
 
         let reviewHtml = `
@@ -634,32 +607,33 @@
                 <h4>မေးခွန်း တစ်ခုချင်းစီ အခြေအနေ:</h4>`;
 
         qs.forEach((q, idx) => {
-            let status = studentAnswers[q.id] ? `<span style="color:#69F0AE;">Answered (Option ${studentAnswers[q.id]})</span>` : `<span style="color:#ff6b6b; font-weight:bold;">Not Answered</span>`;
+            let status = activeExamData.studentAnswers[q.id] ? `<span style="color:#69F0AE;">Answered (Option ${activeExamData.studentAnswers[q.id]})</span>` : `<span style="color:#ff6b6b; font-weight:bold;">Not Answered</span>`;
             reviewHtml += `<div style="font-size:13px; margin-bottom:5px;"><b>မေးခွန်း ${idx+1}:</b> ${status}</div>`;
         });
 
         reviewHtml += `
-                <button onclick="startAttemptQuiz()" style="background:#8892B0; color:#fff; margin-top:10px;">✏️ Review (ပြန်လည်ပြင်ဆင်ရန်)</button>
-                <button onclick="confirmSubmit('${sub}')" style="background:#69F0AE; color:#0A192F; font-size:16px; margin-top:10px;">📤 Submit (နောက်ဆုံးတင်သွင်းမည်)</button>
+                <button onclick="renderQuizForm()" style="background:#8892B0; color:#fff; margin-top:10px;">✏️ Review (ပြန်လည်ပြင်ဆင်ရန်)</button>
+                <button onclick="confirmSubmit()" style="background:#69F0AE; color:#0A192F; font-size:16px; margin-top:10px;">📤 Submit (နောက်ဆုံးတင်သွင်းမည်)</button>
             </div>`;
         document.getElementById('roleContent').innerHTML = reviewHtml;
     }
 
-    function confirmSubmit(sub) {
+    function confirmSubmit() {
         if(!confirm('သင်၏ အဖြေများကို နောက်ဆုံးအကြိမ်အဖြစ် Submit လုပ်ရန် သေချာပါသလား?')) return;
 
-        let qs = (JSON.parse(localStorage.getItem('questions_v17')) || []).filter(q => q.sub === sub);
+        let qs = activeExamData.questions;
+        if (!activeExamData.studentAnswers) activeExamData.studentAnswers = {};
         let score = 0;
         qs.forEach(q => {
-            if(studentAnswers[q.id] === q.ans) score += (100 / qs.length);
+            if(activeExamData.studentAnswers[q.id] === q.ans) score += (100 / qs.length);
         });
 
-        let finalScore = Math.round(score);
-        let grade = finalScore >= 80 ? 'A+' : (finalScore >= 50 ? 'B' : 'C');
+        let finalScore = Math.round((score * activeExamData.totalMarks) / 100);
+        let grade = finalScore >= (activeExamData.totalMarks * 0.8) ? 'A+' : (finalScore >= (activeExamData.totalMarks * 0.5) ? 'B' : 'C');
         let dateStr = new Date().toLocaleDateString();
 
         let results = JSON.parse(localStorage.getItem('results'));
-        results.push({ student: currentUser.name, subject: sub, score: finalScore, total: 100, grade, date: dateStr });
+        results.push({ student: currentUser.name, subject: activeExamData.subject, score: finalScore, total: activeExamData.totalMarks, grade, date: dateStr });
         localStorage.setItem('results', JSON.stringify(results));
 
         let slip = `CHINDWIN FUTURE BRIGHT SCHOOL
@@ -667,8 +641,9 @@
 EXAM RESULT SLIP (FINAL SUBMIT)
 --------------------------------
 Student : ${currentUser.name}
-Subject : ${sub}
-Score   : ${finalScore} / 100
+Roll No : ${currentUser.roll || 'CFBS-001'}
+Subject : ${activeExamData.subject}
+Score   : ${finalScore} / ${activeExamData.totalMarks}
 Grade   : ${grade}
 Date    : ${dateStr}
 --------------------------------
