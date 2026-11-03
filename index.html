@@ -1538,7 +1538,7 @@ function submitExam(auto){
  a.student===currentUser.user
  );
 
--if(attempt){
+if(attempt){
   attempt.status='completed';
   attempt.end=finish;
   attempt.answers=activeExam.answers;
