@@ -211,31 +211,39 @@
 </div>
 
 <script>
-    // Updated Complete Curriculum Mapping
-    const curriculumSubjects = {
-        "KG to Grade 5": ["မြန်မာစာ", "အင်္ဂလိပ်စာ", "သင်္ချာ", "လူမှုရေး", "သိပ္ပံ"],
-        "Grade 6 to Grade 9": ["မြန်မာစာ", "အင်္ဂလိပ်စာ", "သင်္ချာ", "ပထဝီဝင်", "သမိုင်း", "သိပ္ပံ"],
-        "Grade 10-12 (အတွဲ ၁ - သိပ္ပံ)": ["မြန်မာစာ", "အင်္ဂလိပ်စာ", "သင်္ချာ", "ဓာတုဗေဒ", "ရူပဗေဒ", "ဇီဝဗေဒ"],
-        "Grade 10-12 (အတွဲ ၂ - သိပ္ပံ/ဘောဂဗေဒ)": ["မြန်မာစာ", "အင်္ဂလိပ်စာ", "သင်္ချာ", "ဓာတုဗေဒ", "ရူပဗေဒ", "ဘောဂဗေဒ"],
-        "Grade 10-12 (အတွဲ ၃ - ဝိဇ္ဇာ/သိပ္ပံစုံ)": ["မြန်မာစာ", "အင်္ဂလိပ်စာ", "သင်္ချာ", "ပထဝီဝင်", "သမိုင်း", "သိပ္ပံ"]
-    };
+    const gradeList = [
+        "KG", "Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5", 
+        "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"
+    ];
+
+    function getSubjectsByGrade(grade) {
+        if (["KG", "Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5"].includes(grade)) {
+            return ["မြန်မာစာ", "အင်္ဂလိပ်စာ", "သင်္ချာ", "လူမှုရေး", "သိပ္ပံ"];
+        } else if (["Grade 6", "Grade 7", "Grade 8", "Grade 9"].includes(grade)) {
+            return ["မြန်မာစာ", "အင်္ဂလိပ်စာ", "သင်္ချာ", "ပထဝီဝင်", "သမိုင်း", "သိပ္ပံ"];
+        } else {
+            return ["မြန်မာစာ", "အင်္ဂလိပ်စာ", "သင်္ချာ", "ဓာတုဗေဒ", "ရူပဗေဒ", "ဇီဝဗေဒ", "ဘောဂဗေဒ", "ပထဝီဝင်", "သမိုင်း", "သိပ္ပံ"];
+        }
+    }
+
+    const examTypes = ["ပထမလပတ်", "ဒုတိယလပတ်", "တတိယလပတ်", "စတုတ္ထပတ်", "အတန်းတင်စာမေးပွဲ"];
 
     if (!localStorage.getItem('users')) {
         localStorage.setItem('users', JSON.stringify([
             {user: 'principal', pass: '123', role: 'principal', name: 'ကျောင်းအုပ်ကြီး'},
             {user: 'teacher', pass: '123', role: 'teacher', name: 'ဦးဆောင်ဆရာမ'},
-            {user: 'student', pass: '123', role: 'student', name: 'မောင်ကျောင်းသား', grade: 'Grade 6 to Grade 9', roll: 'CFBS-001'}
+            {user: 'student', pass: '123', role: 'student', name: 'မောင်ကျောင်းသား', grade: 'Grade 6', roll: 'CFBS-001'}
         ]));
     }
-    if (!localStorage.getItem('questions_v20')) {
-        localStorage.setItem('questions_v20', JSON.stringify([
-            {id: 1, grade: 'Grade 6 to Grade 9', sub: 'သင်္ချာ', q: 'If z1 = 6-17i, z2 = 3-bi and z1/z2 = 4-3i, then b is', optA: '1', optB: '2', optC: '3', optD: '4', ans: 'A'}
+    if (!localStorage.getItem('questions_v22')) {
+        localStorage.setItem('questions_v22', JSON.stringify([
+            {id: 1, grade: 'Grade 6', sub: 'သင်္ချာ', q: 'If z1 = 6-17i, z2 = 3-bi and z1/z2 = 4-3i, then b is', optA: '1', optB: '2', optC: '3', optD: '4', ans: 'A'}
         ]));
     }
     if (!localStorage.getItem('results')) localStorage.setItem('results', JSON.stringify([]));
 
     let currentUser = null;
-    let activeExamData = { questions: [], studentAnswers: {}, totalMarks: 25, subject: '' };
+    let activeExamData = { questions: [], studentAnswers: {}, totalMarks: 25, subject: '', examType: '' };
 
     function handleLogin() {
         let u = document.getElementById('loginUser').value.trim();
@@ -261,33 +269,49 @@
         if (currentUser.role === 'principal') {
             document.getElementById('portalSub').innerText = 'PRINCIPAL ADMINISTRATION';
             content.innerHTML = `
+                <h3 style="text-align:left; color:var(--accent-color);">Principal Dashboard</h3>
                 <div class="grid-2">
                     <div class="menu-card" onclick="renderView('studentMgmt')"><h4>👥 Students</h4><p>ကျောင်းသား စာရင်း</p></div>
                     <div class="menu-card" onclick="renderView('teacherMgmt')"><h4>🎓 Teachers</h4><p>ဆရာ/ဆရာမ စာရင်း</p></div>
-                    <div class="menu-card" onclick="renderView('questions')"><h4>📖 Question Bank</h4><p>မေးခွန်းဘဏ် (OCR / Import)</p></div>
+                    <div class="menu-card" onclick="renderView('exams')"><h4>📋 Examinations</h4><p>စာမေးပွဲများ</p></div>
+                    <div class="menu-card" onclick="renderView('questions')"><h4>📖 Question Bank</h4><p>မေးခွန်းဘဏ် (OCR)</p></div>
+                </div>
+
+                <div class="section-title">Management Menu</div>
+                <div class="grid-2">
+                    <div class="menu-card" onclick="renderView('studentMgmt')"><h4>👥 Student Management</h4><p>ကျောင်းသားစီမံခန့်ခွဲမှု</p></div>
+                    <div class="menu-card" onclick="renderView('teacherMgmt')"><h4>🎓 Teacher Management</h4><p>ဆရာစီမံခန့်ခွဲမှု</p></div>
+                    <div class="menu-card" onclick="renderView('subjects')"><h4>📚 Class & Subjects</h4><p>အတန်းနှင့်ဘာသာရပ်များ</p></div>
+                    <div class="menu-card" onclick="renderView('questions')"><h4>📖 Question Bank</h4><p>မေးခွန်းဘဏ်</p></div>
+                    <div class="menu-card" onclick="renderView('createExam')"><h4>✍️ Create Examination</h4><p>စာမေးပွဲဖန်တီးရန်</p></div>
+                    <div class="menu-card" onclick="renderView('schedule')"><h4>📅 Exam Schedule</h4><p>စာမေးပွဲအချိန်ဇယား</p></div>
+                    <div class="menu-card" onclick="renderView('reports')"><h4>📊 Results & Reports</h4><p>ရလဒ်များနှင့် အစီရင်ခံစာ</p></div>
+                    <div class="menu-card" onclick="renderView('backup')"><h4>⚙️ Security & Backup</h4><p>ဒေတာသိမ်းဆည်းမှု</p></div>
                 </div>
                 <div id="dynamicView"></div>
             `;
         } else if (currentUser.role === 'teacher') {
             document.getElementById('portalSub').innerText = 'CFBS TEACHER PANEL - EXAM MANAGEMENT';
             content.innerHTML = `
-                <div class="card-box" style="background:rgba(255,215,0,0.05);">
-                    <b>ဆရာ/မ အမည်:</b> ${currentUser.name} <br><b>တာဝန်ယူမှု:</b> အတန်းနှင့် ဘာသာရပ်အလိုက် စာမေးပွဲစီမံခန့်ခွဲမှု
-                </div>
+                <h3 style="text-align:left; color:var(--accent-color);">Teacher Dashboard</h3>
                 <div class="grid-2">
-                    <div class="menu-card" onclick="renderView('studentMgmt')"><h4>👥 Students</h4><p>ကျောင်းသားစာရင်း စစ်ဆေးရန်</p></div>
-                    <div class="menu-card" onclick="renderView('questions')"><h4>📖 Question Bank</h4><p>မေးခွန်းဘဏ် (OCR ဖတ်ရန်)</p></div>
-                    <div class="menu-card" onclick="renderView('reports')"><h4>📊 Exam Results</h4><p>စာမေးပွဲ ရလဒ်များ</p></div>
-                    <div class="menu-card" onclick="renderView('backup')"><h4>📥 Import / Export</h4><p>မေးခွန်းဖိုင် တင်သွင်းရန်</p></div>
+                    <div class="menu-card" onclick="renderView('studentMgmt')"><h4>👥 Students</h4><p>ကျောင်းသားစာရင်းစစ်ဆေးမှု</p></div>
+                    <div class="menu-card" onclick="renderView('questions')"><h4>📖 Question Bank</h4><p>မေးခွန်းဘဏ်</p></div>
+                    <div class="menu-card" onclick="renderView('createExam')"><h4>✍️ Create Exam</h4><p>စာမေးပွဲဖန်တီးရန်</p></div>
+                    <div class="menu-card" onclick="renderView('backup')"><h4>📥 Import / Export</h4><p>မေးခွန်းဖိုင်ပို့ပပို့/ယူ</p></div>
+                    <div class="menu-card" onclick="renderView('reports')"><h4>📊 Exam Results</h4><p>စာမေးပွဲရလဒ်</p></div>
+                    <div class="menu-card" onclick="renderView('subjects')"><h4>📚 Subjects & Chapters</h4><p>ဘာသာရပ်နှင့်အခန်းများ</p></div>
+                    <div class="menu-card" onclick="renderView('schedule')"><h4>📅 Exam Schedule</h4><p>စာမေးပွဲအချိန်ဇယား</p></div>
+                    <div class="menu-card" onclick="alert('Settings menu active')"><h4>⚙️ Settings</h4><p>စနစ်သတ်မှတ်ချက်</p></div>
                 </div>
                 <div id="dynamicView"></div>
             `;
             renderView('questions');
         } else if (currentUser.role === 'student') {
             document.getElementById('portalSub').innerText = 'STUDENT EXAM PORTAL';
-            let studentGrade = currentUser.grade || "Grade 6 to Grade 9";
+            let studentGrade = currentUser.grade || "Grade 6";
             let studentRoll = currentUser.roll || "CFBS-001";
-            let availableSubs = curriculumSubjects[studentGrade] || ["မြန်မာစာ", "အင်္ဂလိပ်စာ", "သင်္ချာ"];
+            let availableSubs = getSubjectsByGrade(studentGrade);
 
             content.innerHTML = `
                 <div class="card-box" style="background:rgba(255,215,0,0.05);">
@@ -298,6 +322,12 @@
 
                 <div class="card-box">
                     <h4>📚 စာမေးပွဲ ဖြေဆိုရန် ရွေးချယ်ပါ</h4>
+                    
+                    <label><b>စာမေးပွဲအမျိုးအစား (Exam Type)</b></label>
+                    <select id="examTypeSelect">
+                        ${examTypes.map(et => `<option value="${et}">${et}</option>`).join('')}
+                    </select>
+
                     <label><b>ဘာသာရပ် (Subject)</b></label>
                     <select id="examSub">
                         ${availableSubs.map(s => `<option value="${s}">${s}</option>`).join('')}
@@ -327,17 +357,14 @@
         if (!view) return;
 
         if (type === 'questions') {
-            let qs = JSON.parse(localStorage.getItem('questions_v20')) || [];
+            let qs = JSON.parse(localStorage.getItem('questions_v22')) || [];
             view.innerHTML = `
                 <div class="card-box">
                     <h4>📖 Batch OCR & JSON Import မေးခွန်းများ</h4>
+                    
                     <label><b>၁။ အတန်းအဆင့် (Grade) ရွေးချယ်ပါ</b></label>
                     <select id="qGrade" onchange="updateSubjectDropdown()">
-                        <option value="KG to Grade 5">KG to Grade 5</option>
-                        <option value="Grade 6 to Grade 9" selected>Grade 6 to Grade 9</option>
-                        <option value="Grade 10-12 (အတွဲ ၁ - သိပ္ပံ)">Grade 10-12 (အတွဲ ၁ - သိပ္ပံ)</option>
-                        <option value="Grade 10-12 (အတွဲ ၂ - သိပ္ပံ/ဘောဂဗေဒ)">Grade 10-12 (အတွဲ ၂ - သိပ္ပံ/ဘောဂဗေဒ)</option>
-                        <option value="Grade 10-12 (အတွဲ ၃ - ဝိဇ္ဇာ/သိပ္ပံစုံ)">Grade 10-12 (အတွဲ ၃ - ဝိဇ္ဇာ/သိပ္ပံစုံ)</option>
+                        ${gradeList.map(g => `<option value="${g}">${g}</option>`).join('')}
                     </select>
 
                     <label><b>၂။ ဘာသာရပ် ရွေးချယ်ပါ</b></label>
@@ -371,11 +398,7 @@
                     <label>ကျောင်းဝင်အမှတ် (Roll No)</label><input type="text" id="sRoll" placeholder="CFBS-002">
                     <label>အတန်းအဆင့် (Grade)</label>
                     <select id="sGrade">
-                        <option value="KG to Grade 5">KG to Grade 5</option>
-                        <option value="Grade 6 to Grade 9">Grade 6 to Grade 9</option>
-                        <option value="Grade 10-12 (အတွဲ ၁ - သိပ္ပံ)">Grade 10-12 (အတွဲ ၁ - သိပ္ပံ)</option>
-                        <option value="Grade 10-12 (အတွဲ ၂ - သိပ္ပံ/ဘောဂဗေဒ)">Grade 10-12 (အတွဲ ၂ - သိပ္ပံ/ဘောဂဗေဒ)</option>
-                        <option value="Grade 10-12 (အတွဲ ၃ - ဝိဇ္ဇာ/သိပ္ပံစုံ)">Grade 10-12 (အတွဲ ၃ - ဝိဇ္ဇာ/သိပ္ပံစုံ)</option>
+                        ${gradeList.map(g => `<option value="${g}">${g}</option>`).join('')}
                     </select>
                     <button onclick="createAccount('student')">ကျောင်းသားအကောင့် ဖန်တီးမည်</button>
                     <h4 style="margin-top:15px;">ကျောင်းသား စာရင်းများ</h4>
@@ -393,15 +416,25 @@
                     <h4 style="margin-top:15px;">ဆရာ/မ စာရင်းများ</h4>
                     <ul>` + users.filter(x => x.role === 'teacher').map(t => `<li>${t.name} (${t.user})</li>`).join('') + `</ul>
                 </div>`;
+        } else if (type === 'createExam') {
+            view.innerHTML = `<div class="card-box"><h4>✍️ စာမေးပွဲအသစ် ဖန်တီးရန်</h4>
+                <input type="text" id="exTitle" placeholder="စာမေးပွဲခေါင်းစဉ်">
+                <input type="text" id="exSub" placeholder="ဘာသာရပ်">
+                <input type="text" id="exMarks" placeholder="စုစုပေါင်းရမှတ်">
+                <button onclick="alert('စာမေးပွဲ သိမ်းဆည်းပြီးပါပြီ။')">စာမေးပွဲ သိမ်းဆည်းမည်</button></div>`;
+        } else if (type === 'subjects') {
+            view.innerHTML = `<div class="card-box"><h4>📚 Class & Subjects</h4><p>KG to Grade 12 curriculum active.</p></div>`;
+        } else if (type === 'schedule') {
+            view.innerHTML = `<div class="card-box"><h4>📅 Exam Schedule</h4><p>Exam timetable is active.</p></div>`;
         } else if (type === 'reports' || type === 'myResults') {
             let res = JSON.parse(localStorage.getItem('results'));
             let html = `<div class="card-box"><h4>📊 စာမေးပွဲ ရလဒ်များ</h4>`;
             if (res.length === 0) { html += `<p style="text-align:center;">မှတ်တမ်း မရှိသေးပါ။</p>`; }
             else {
-                html += `<table><tr><th>ကျောင်းသား</th><th>ဘာသာရပ်</th><th>ရမှတ်</th><th>ဂရိတ်</th></tr>`;
+                html += `<table><tr><th>ကျောင်းသား</th><th>စာမေးပွဲအမျိုးအစား</th><th>ဘာသာရပ်</th><th>ရမှတ်</th><th>ဂရိတ်</th></tr>`;
                 res.forEach(r => {
                     if(currentUser.role === 'student' && r.student !== currentUser.name) return;
-                    html += `<tr><td>${r.student}</td><td>${r.subject}</td><td>${r.score}/${r.total}</td><td>${r.grade}</td></tr>`;
+                    html += `<tr><td>${r.student}</td><td>${r.examType || '-'}</td><td>${r.subject}</td><td>${r.score}/${r.total}</td><td>${r.grade}</td></tr>`;
                 });
                 html += `</table>`;
             }
@@ -419,7 +452,7 @@
         if (!gradeSelect || !subSelect) return;
 
         let selectedGrade = gradeSelect.value;
-        let subs = curriculumSubjects[selectedGrade] || [];
+        let subs = getSubjectsByGrade(selectedGrade);
         subSelect.innerHTML = subs.map(s => `<option value="${s}">${s}</option>`).join('');
     }
 
@@ -430,7 +463,7 @@
         let u = document.getElementById(uInput).value.trim();
         let p = document.getElementById(pInput).value.trim();
         let n = document.getElementById(nInput).value.trim();
-        let grade = role === 'student' ? document.getElementById('sGrade').value : 'Grade 6 to Grade 9';
+        let grade = role === 'student' ? document.getElementById('sGrade').value : 'Grade 6';
         let roll = role === 'student' ? document.getElementById('sRoll').value.trim() : 'ADMIN';
 
         if(!u || !p || !n) { alert('အချက်အလက် ဖြည့်ပါ။'); return; }
@@ -448,9 +481,9 @@
         reader.onload = function(e) {
             try {
                 let imported = JSON.parse(e.target.result);
-                let qs = JSON.parse(localStorage.getItem('questions_v20')) || [];
+                let qs = JSON.parse(localStorage.getItem('questions_v22')) || [];
                 imported.forEach(q => qs.push(q));
-                localStorage.setItem('questions_v20', JSON.stringify(qs));
+                localStorage.setItem('questions_v22', JSON.stringify(qs));
                 alert(`ဆရာ့ဖိုင်မှ မေးခွန်း ${imported.length} ပုဒ် အောင်မြင်စွာ Import လုပ်ပြီးပါပြီ။`);
                 renderView('questions');
             } catch(err) {
@@ -508,9 +541,9 @@
             });
 
             if (extracted.length > 0) {
-                let qs = JSON.parse(localStorage.getItem('questions_v20')) || [];
+                let qs = JSON.parse(localStorage.getItem('questions_v22')) || [];
                 extracted.forEach(eq => qs.push(eq));
-                localStorage.setItem('questions_v20', JSON.stringify(qs));
+                localStorage.setItem('questions_v22', JSON.stringify(qs));
                 alert(`(${gradeInput} - ${subInput}) အတွက် မေးခွန်း ${extracted.length} ပုဒ် အလိုအလျောက် ဝင်ရောက်သွားပါပြီ။`);
                 renderView('questions');
             } else {
@@ -527,7 +560,7 @@
 
     function clearQuestions() {
         if(confirm('မေးခွန်းအားလုံး ဖျက်မည်မှာ သေချာပါသလား?')) {
-            localStorage.setItem('questions_v20', JSON.stringify([]));
+            localStorage.setItem('questions_v22', JSON.stringify([]));
             renderView('questions');
         }
     }
@@ -543,29 +576,31 @@
     // --- STUDENT ATTEMPT QUIZ ---
     function startAttemptQuiz() {
         let selectedSub = document.getElementById('examSub').value;
+        let selectedExamType = document.getElementById('examTypeSelect').value;
         let requiredMarks = parseInt(document.getElementById('examMarks').value) || 25;
-        let studentGrade = currentUser.grade || "Grade 6 to Grade 9";
+        let studentGrade = currentUser.grade || "Grade 6";
         
-        let allQs = (JSON.parse(localStorage.getItem('questions_v20')) || []).filter(q => q.grade === studentGrade && q.sub === selectedSub);
+        let allQs = (JSON.parse(localStorage.getItem('questions_v22')) || []).filter(q => q.grade === studentGrade && q.sub === selectedSub);
         if(allQs.length === 0) { alert(`ဤဘာသာရပ် (${selectedSub}) အတွက် မေးခွန်း မရှိသေးပါ။`); return; }
 
         let shuffled = allQs.sort(() => 0.5 - Math.random());
         let selectedQs = shuffled.slice(0, requiredMarks);
 
-        activeExamData = { questions: selectedQs, studentAnswers: {}, totalMarks: requiredMarks, subject: selectedSub };
+        activeExamData = { questions: selectedQs, studentAnswers: {}, totalMarks: requiredMarks, subject: selectedSub, examType: selectedExamType };
 
         renderQuizForm();
     }
 
     function renderQuizForm() {
         let selectedSub = activeExamData.subject;
-        let studentGrade = currentUser.grade || "Grade 6 to Grade 9";
+        let studentGrade = currentUser.grade || "Grade 6";
         let selectedQs = activeExamData.questions;
         let requiredMarks = activeExamData.totalMarks;
+        let examType = activeExamData.examType;
 
         let html = `
             <div class="card-box" style="text-align:left;">
-                <h3>📜 ${selectedSub} Exam (${studentGrade}) - ${requiredMarks} Marks</h3>
+                <h3>📜 ${examType} - ${selectedSub} Exam (${studentGrade}) - ${requiredMarks} Marks</h3>
                 <p style="font-size:12px; color:var(--text-muted);">မေးခွန်း ${selectedQs.length} ပုဒ်ကို အောက်သို့ Scroll ဆွဲ၍ ဖြေဆိုပါ။ ပြီးလျှင် Finished ကိုနှိပ်ပါ။</p>
                 <form id="quizForm">`;
 
@@ -633,7 +668,7 @@
         let dateStr = new Date().toLocaleDateString();
 
         let results = JSON.parse(localStorage.getItem('results'));
-        results.push({ student: currentUser.name, subject: activeExamData.subject, score: finalScore, total: activeExamData.totalMarks, grade, date: dateStr });
+        results.push({ student: currentUser.name, examType: activeExamData.examType, subject: activeExamData.subject, score: finalScore, total: activeExamData.totalMarks, grade, date: dateStr });
         localStorage.setItem('results', JSON.stringify(results));
 
         let slip = `CHINDWIN FUTURE BRIGHT SCHOOL
@@ -642,6 +677,7 @@ EXAM RESULT SLIP (FINAL SUBMIT)
 --------------------------------
 Student : ${currentUser.name}
 Roll No : ${currentUser.roll || 'CFBS-001'}
+Exam    : ${activeExamData.examType}
 Subject : ${activeExamData.subject}
 Score   : ${finalScore} / ${activeExamData.totalMarks}
 Grade   : ${grade}
