@@ -1,86 +1,24 @@
-
-name: Build CFBS Smart Exam APK
-
-on:
-  push:
-    branches:
-      - main
-      - master
-  workflow_dispatch:
-
-permissions:
-  contents: read
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Check HTML and Flutter Files
+      - name: Diagnose Project Files
+        shell: bash
         run: |
-          test -f pubspec.yaml
-          test -f index.html
-          test -f lib/main.dart
-          echo "All source files found."
+          echo "===== ROOT FILES ====="
+          ls -lab
 
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-
-      - name: Generate Android Project
-        run: |
-          flutter create \
-            --platforms=android \
-            --project-name smart_exam \
-            --org com.cfbs \
-            --no-pub \
-            _android_template
-
-          cp -R _android_template/android ./android
-          rm -rf _android_template
-
-      - name: Add Internet Permission
-        run: |
+          echo "===== EXACT FILENAMES ====="
           python3 - <<'PY'
-          from pathlib import Path
+          import os
 
-          p = Path("android/app/src/main/AndroidManifest.xml")
-          s = p.read_text()
+          for name in os.listdir("."):
+              print(repr(name), "FILE:", os.path.isfile(name))
 
-          permission = '<uses-permission android:name="android.permission.INTERNET"/>'
+          required = ["pubspec.yaml", "index.html", "lib/main.dart"]
 
-          if permission not in s:
-              s = s.replace('<application', permission + '\n    <application', 1)
-
-          p.write_text(s)
+          for name in required:
+              print(name, "=>", os.path.isfile(name))
           PY
 
-      - name: Install Dependencies
-        run: flutter pub get
-
-      - name: Build APK
-        run: flutter build apk --release
-
-      - name: Verify APK
-        run: |
-          test -f build/app/outputs/flutter-apk/app-release.apk
-          ls -lh build/app/outputs/flutter-apk/app-release.apk
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: CFBS-Smart-Exam-APK
-          path: build/app/outputs/flutter-apk/app-release.apk
-          if-no-files-found: error
-          retention-days: 14
+          echo "===== CHECK FILES ====="
+          test -f index.html
+          test -f lib/main.dart
+          test -f pubspec.yaml
+          echo "All source files found."
