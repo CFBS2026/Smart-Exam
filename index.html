@@ -108,6 +108,7 @@ th{color:var(--gold)}
 <div class="subtitle" id="portalSub">
 SMART EXAMINATION SYSTEM
 </div>
+
 <!-- LOGIN -->
 <section id="loginSection">
 <div class="box">
@@ -122,17 +123,20 @@ SMART EXAMINATION SYSTEM
 <button onclick="handleLogin()">အကောင့်ဝင်မည်</button>
 
 <p id="loginMsg" style="color:#ff7777;text-align:center"></p>
+
 </div>
- </section>
- 
-<!-- DASHBOAR D -->
+</section>
+<!-- DASHBOARD -->
 <section id="dashboardSection" class="hidden">
 <h3 id="welcomeText" style="text-align:center"></h3>
 <div id="roleContent"></div>
 <button class="danger" onclick="logout()">Logout</button>
 </section>
+
 </div>
+
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
 <script>
 'use strict';
 
@@ -240,8 +244,8 @@ function newId(){return id('CFBS')}
 /* ================= INITIAL DATA ================= */
 
 function initialize(){
-
- if(!localStorage.getItem(KEY.users)){
+ const users = read(KEY.users);
+ if(!users || users.length === 0){
   save(KEY.users,[
    {
     id:newId(),user:'principal',pass:'123',
@@ -1549,7 +1553,7 @@ function submitExam(auto){
   total:exam.total,
   percent:Math.round(percent*100)/100,
   grade,
-  manualPending
+  manualPending: manualPending > 0
  };
 
  save(KEY.results,[...read(KEY.results),result]);
@@ -1643,8 +1647,7 @@ function drawMyResults(){
  </div>`;
 }
 
-
-<//* ================= TEACHER RESULTS ================= */
+/* ================= TEACHER RESULTS ================= */
 
 function showTeacherResults(){
 
@@ -1743,6 +1746,8 @@ function drawTeacherResults(){
  ရလဒ် Print ထုတ်ရန်
  </button>
  `;
-}>
+}
+
+</script>
 </body>
 </html>
