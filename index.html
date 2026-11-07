@@ -1622,29 +1622,131 @@ function showResult(r){
 
 }
 
+
 /* ================= RESULTS ================= */
 
 function drawMyResults(){
 
  if(!$('myResults'))return;
 
- const list=read(KEY.results).filter(r=>
- r.username===currentUser.user
+ const all=read(KEY.results).filter(r=>
+  r.username===currentUser.user
  );
 
+ const examTitles=[...new Set(all.map(r=>r.title).filter(Boolean))];
+ const examTypes=[...new Set(all.map(r=>r.examType).filter(Boolean))];
+ const subjectList=[...new Set(all.map(r=>r.subject).filter(Boolean))];
+
  $('myResults').innerHTML=`
+ <div class="box">
+
+ <label>စာမေးပွဲအမည် ရွေးချယ်ပါ</label>
+ <select id="myExamFilter" onchange="filterMyResults()">
+  <option value="all">စာမေးပွဲအားလုံး</option>
+  ${examTitles.map(x=>`
+   <option value="${esc(x)}">${esc(x)}</option>
+  `).join('')}
+ </select>
+
+ <label>စာမေးပွဲအမျိုးအစား</label>
+ <select id="myExamTypeFilter" onchange="filterMyResults()">
+  <option value="all">အမျိုးအစားအားလုံး</option>
+  ${examTypes.map(x=>`
+   <option value="${esc(x)}">${esc(x)}</option>
+  `).join('')}
+ </select>
+
+ <label>ဘာသာရပ် ရွေးချယ်ပါ</label>
+ <select id="mySubjectFilter" onchange="filterMyResults()">
+  <option value="all">ဘာသာရပ်အားလုံး</option>
+  ${subjectList.map(x=>`
+   <option value="${esc(x)}">${esc(x)}</option>
+  `).join('')}
+ </select>
+
+ <div id="myResultTable"></div>
+ </div>
+ `;
+
+ filterMyResults();
+}
+
+function filterMyResults(){
+
+ if(!$('myResultTable'))return;
+
+ const exam=$('myExamFilter').value;
+ const type=$('myExamTypeFilter').value;
+ const subject=$('mySubjectFilter').value;
+
+ let list=read(KEY.results).filter(r=>
+  r.username===currentUser.user
+ );
+
+ if(exam!=='all'){
+  list=list.filter(r=>r.title===exam);
+ }
+
+ if(type!=='all'){
+  list=list.filter(r=>r.examType===type);
+ }
+
+ if(subject!=='all'){
+  list=list.filter(r=>r.subject===subject);
+ }
+
+ list.sort((a,b)=>String(b.id||'').localeCompare(String(a.id||'')));
+
+ $('myResultTable').innerHTML=`
+ <p class="muted">တွေ့ရှိသော ရလဒ် — ${list.length} ခု</p>
+
  <div class="table-wrap">
  <table>
- <tr><th>စာမေးပွဲ</th><th>ဘာသာ</th><th>ရမှတ်</th><th>Grade</th></tr>
- ${list.map(r=>`
  <tr>
- <td>${esc(r.title)}</td>
- <td>${esc(r.subject)}</td>
- <td>${r.score}/${r.total}</td>
- <td>${r.manualPending?'Pending':r.grade}</td>
- </tr>`).join('')||'<tr><td colspan="4">ရလဒ်မရှိသေးပါ။</td></tr>'}
+  <th>စဉ်</th>
+  <th>စာမေးပွဲအမည်</th>
+  <th>ဘာသာရပ်</th>
+  <th>ရမှတ်</th>
+  <th>Grade</th>
+  <th>အသေးစိတ်</th>
+ </tr>
+
+ ${list.map((r,i)=>`
+ <tr>
+  <td>${i+1}</td>
+  <td>${esc(r.title)}</td>
+  <td>${esc(r.subject)}</td>
+  <td>${r.score}/${r.total}</td>
+  <td>${r.manualPending?'Pending':esc(r.grade)}</td>
+  <td>
+   <button class="smallbtn"
+    onclick="viewMyResult('${r.id}')">
+    ကြည့်ရန်
+   </button>
+  </td>
+ </tr>
+ `).join('')||`
+ <tr>
+  <td colspan="6" style="text-align:center">
+   ရလဒ်မရှိသေးပါ။
+  </td>
+ </tr>
+ `}
  </table>
- </div>`;
+ </div>
+ `;
+}
+
+function viewMyResult(resultId){
+
+ const result=read(KEY.results).find(r=>
+  r.id===resultId&&
+  r.username===currentUser.user
+ );
+
+ if(!result)return alert('ရလဒ်ရှာမတွေ့ပါ။');
+
+ showResult(result);
 }
 
 /* ================= TEACHER RESULTS ================= */
