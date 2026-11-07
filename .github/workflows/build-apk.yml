@@ -1,4 +1,3 @@
-
 name: Build CFBS Smart Exam APK
 
 on:
@@ -19,8 +18,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # Fix filename and check source files
-      - name: Prepare Flutter Project
+      - name: Fix and Verify Files
         shell: bash
         run: |
           python3 - <<'PY'
@@ -43,7 +41,7 @@ jobs:
 
           if len(matches) != 1:
               raise SystemExit(
-                  "ERROR: pubspec.yaml matches: " + repr(matches)
+                  "Expected one pubspec.yaml; found: " + repr(matches)
               )
 
           if matches[0] != "pubspec.yaml":
@@ -55,35 +53,34 @@ jobs:
           with open("pubspec.yaml", "w", encoding="utf-8") as f:
               f.write(content)
 
-          for path in [
+          required = [
               "pubspec.yaml",
               "index.html",
-              "lib/main.dart"
-          ]:
+              "lib/main.dart",
+              "app_icon.png"
+          ]
+
+          for path in required:
               if not os.path.isfile(path):
-                  raise SystemExit("MISSING FILE: " + path)
+                  raise SystemExit("MISSING: " + path)
               print("FOUND:", path)
 
-          print("Source files verified.")
+          print("Project files verified.")
           PY
 
-      # Setup Java
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      # Setup Flutter
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
 
-      # Generate Android folder FIRST
-      - name: Generate Android Project
-        shell: bash
+      - name: Generate Android Folder
         run: |
           flutter create \
             --platforms=android \
@@ -94,18 +91,81 @@ jobs:
 
           cp -R /tmp/smart_exam_template/android ./android
 
-          echo "Android folder created."
-          test -f android/app/src/main/AndroidManifest.xml
+          echo "Android project generated."
 
-      # Configure Internet
-      - name: Configure Android
+      - name: Set Android Compile SDK 36
         shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          files = [
+              Path("android/app/build.gradle.kts"),
+              Path("android/app/build.gradle")
+          ]
+
+          gradle = next((p for p in files if p.exists()), None)
+
+          if gradle is None:
+              raise SystemExit("Android app Gradle file not found.")
+
+          content = gradle.read_text()
+
+          if gradle.name.endswith(".kts"):
+              content, count = re.subn(
+                  r'compileSdk\s*=\s*[^\n]+',
+                  'compileSdk = 36',
+                  content,
+                  count=1
+              )
+          else:
+              content, count = re.subn(
+                  r'compileSdkVersion\s+.*',
+                  'compileSdkVersion 36',
+                  content,
+                  count=1
+              )
+
+              if count == 0:
+                  content, count = re.subn(
+                      r'compileSdk\s+.*',
+                      'compileSdk 36',
+                      content,
+                      count=1
+                  )
+
+          if count == 0:
+              raise SystemExit("Could not update compileSdk.")
+
+          gradle.write_text(content)
+          print("compileSdk updated to 36.")
+          PY
+
+      - name: Configure App Icon
+        run: |
+          flutter pub add --dev flutter_launcher_icons
+
+          cat > flutter_launcher_icons.yaml <<'EOF'
+          flutter_launcher_icons:
+            android: true
+            ios: false
+            image_path: "app_icon.png"
+            adaptive_icon_background: "#0A192F"
+            adaptive_icon_foreground: "app_icon.png"
+          EOF
+
+          dart run flutter_launcher_icons
+
+          echo "CFBS App Icon configured."
+
+      - name: Configure Internet Permission
         run: |
           python3 - <<'PY'
           from pathlib import Path
 
           p = Path("android/app/src/main/AndroidManifest.xml")
-          s = p.read_text(encoding="utf-8")
+          s = p.read_text()
 
           permission = '<uses-permission android:name="android.permission.INTERNET"/>'
 
@@ -116,25 +176,21 @@ jobs:
                   1
               )
 
-          p.write_text(s, encoding="utf-8")
-          print("Internet permission configured.")
+          p.write_text(s)
+          print("Internet permission added.")
           PY
 
-      # Install dependencies
       - name: Install Dependencies
         run: flutter pub get
 
-      # Build APK
-      - name: Build Release APK
+      - name: Build APK
         run: flutter build apk --release
 
-      # Verify APK
       - name: Verify APK
         run: |
           test -f build/app/outputs/flutter-apk/app-release.apk
           ls -lh build/app/outputs/flutter-apk/app-release.apk
 
-      # Upload APK
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
