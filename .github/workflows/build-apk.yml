@@ -16,87 +16,89 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Download Repository
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # 2. Fix and Verify Project Files
-      - name: Fix Project Files
+      # Fix filename and check source files
+      - name: Prepare Flutter Project
         shell: bash
         run: |
           python3 - <<'PY'
           import os
           import unicodedata
 
-          print("===== ORIGINAL FILES =====")
-          for name in os.listdir("."):
-              print(repr(name))
-
           def normalize(name):
               name = unicodedata.normalize("NFKC", name)
               return "".join(
                   c for c in name
-                  if unicodedata.category(c) not in ("Cf", "Cc")
-                  and not c.isspace()
+                  if not c.isspace()
+                  and unicodedata.category(c) not in ("Cf", "Cc")
               ).lower()
 
           matches = [
-              name for name in os.listdir(".")
-              if normalize(name) == "pubspec.yaml"
-              and os.path.isfile(name)
+              n for n in os.listdir(".")
+              if normalize(n) == "pubspec.yaml"
+              and os.path.isfile(n)
           ]
 
           if len(matches) != 1:
               raise SystemExit(
-                  "ERROR: Expected one pubspec.yaml file, found "
-                  + str(len(matches))
+                  "ERROR: pubspec.yaml matches: " + repr(matches)
               )
 
-          source = matches[0]
+          if matches[0] != "pubspec.yaml":
+              os.rename(matches[0], "pubspec.yaml")
 
-          if source != "pubspec.yaml":
-              os.rename(source, "pubspec.yaml")
-              print("Corrected filename:", repr(source))
-
-          with open("pubspec.yaml", "r", encoding="utf-8-sig") as f:
+          with open("pubspec.yaml", encoding="utf-8-sig") as f:
               content = f.read()
 
           with open("pubspec.yaml", "w", encoding="utf-8") as f:
               f.write(content)
 
-          required = [
+          for path in [
               "pubspec.yaml",
               "index.html",
-              "lib/main.dart",
-              "android/app/src/main/AndroidManifest.xml"
-          ]
-
-          print("===== VERIFY FILES =====")
-
-          for path in required:
+              "lib/main.dart"
+          ]:
               if not os.path.isfile(path):
                   raise SystemExit("MISSING FILE: " + path)
               print("FOUND:", path)
 
-          print("All required files verified.")
+          print("Source files verified.")
           PY
 
-      # 3. Setup Java
+      # Setup Java
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      # 4. Setup Flutter
+      # Setup Flutter
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
 
-      # 5. Add Internet Permission
-      - name: Configure Android Internet
+      # Generate Android folder FIRST
+      - name: Generate Android Project
+        shell: bash
+        run: |
+          flutter create \
+            --platforms=android \
+            --project-name smart_exam \
+            --org com.cfbs \
+            --no-pub \
+            /tmp/smart_exam_template
+
+          cp -R /tmp/smart_exam_template/android ./android
+
+          echo "Android folder created."
+          test -f android/app/src/main/AndroidManifest.xml
+
+      # Configure Internet
+      - name: Configure Android
         shell: bash
         run: |
           python3 - <<'PY'
@@ -105,9 +107,7 @@ jobs:
           p = Path("android/app/src/main/AndroidManifest.xml")
           s = p.read_text(encoding="utf-8")
 
-          permission = (
-              '<uses-permission android:name="android.permission.INTERNET"/>'
-          )
+          permission = '<uses-permission android:name="android.permission.INTERNET"/>'
 
           if permission not in s:
               s = s.replace(
@@ -120,21 +120,21 @@ jobs:
           print("Internet permission configured.")
           PY
 
-      # 6. Install Packages
+      # Install dependencies
       - name: Install Dependencies
         run: flutter pub get
 
-      # 7. Build Release APK
-      - name: Build APK
+      # Build APK
+      - name: Build Release APK
         run: flutter build apk --release
 
-      # 8. Verify APK
+      # Verify APK
       - name: Verify APK
         run: |
           test -f build/app/outputs/flutter-apk/app-release.apk
           ls -lh build/app/outputs/flutter-apk/app-release.apk
 
-      # 9. Upload APK
+      # Upload APK
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
