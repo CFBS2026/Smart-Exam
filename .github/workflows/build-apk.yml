@@ -61,8 +61,22 @@ jobs:
           cp -R _android_template/android ./android
           rm -rf _android_template
 
+      
       - name: Install Dependencies
-        run: flutter pub get
+        working-directory: ${{ github.workspace }}
+        shell: bash
+        run: |
+          echo "PROJECT LOCATION:"
+          pwd
+          echo "PROJECT FILES:"
+          ls -la
+          echo "CHECK PUBSPEC:"
+          if [ ! -f pubspec.yaml ]; then
+            echo "ERROR: pubspec.yaml not found in repository root."
+            exit 1
+          fi
+          flutter pub get
+
 
       - name: Build APK
         run: flutter build apk --release
