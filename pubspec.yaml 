@@ -1,0 +1,38 @@
+name: cfbs_smart_exam
+description: "Chindwin Future Bright School (CFBS) Smart Examination System"
+publish_to: 'none' # GitHub သို့မဟုတ် ကိုယ်ပိုင် App အတွက် အသုံးပြုပါက သီးသန့် မထုတ်ဝေရန် ထိန်းချုပ်ခြင်း
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # လိုအပ်ပါက ထည့်သွင်းနိုင်သော Packages များ (ဥပမာ)
+  cupertino_icons: ^1.0.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+  # App Icon ကို အလိုအလျောက် သတ်မှတ်ပေးနိုင်သော Tool (ဆန္ဒရှိပါက သုံးနိုင်သည်)
+  flutter_launcher_icons: ^0.13.1
+
+flutter:
+  uses-material-design: true
+
+  # Asset များ ချိတ်ဆက်ခြင်း
+  assets:
+    - assets/icons/app_icon.png
+    - assets/images/
+
+# App Icon Generator Configuration (flutter_launcher_icons သုံးပါက)
+flutter_launcher_icons:
+  android: "ic_launcher"
+  ios: true
+  image_path: "assets/icons/app_icon.png"
+  min_sdk_android: 21
