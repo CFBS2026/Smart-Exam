@@ -1165,21 +1165,39 @@ function exportQuestionFile(eid){
  );
 }
 
-function downloadJSON(filename,data){
+function downloadJSON(filename, data) {
+    const content = JSON.stringify(data, null, 2);
 
- const blob=new Blob(
-  [JSON.stringify(data,null,2)],
-  {type:'application/json'}
- );
+    // Android APK Export
+    if (
+        window.ExportChannel &&
+        typeof window.ExportChannel.postMessage === 'function'
+    ) {
+        window.ExportChannel.postMessage(
+            JSON.stringify({
+                filename: filename,
+                content: content
+            })
+        );
+        return;
+    }
 
- const url=URL.createObjectURL(blob);
- const a=document.createElement('a');
+    // Browser fallback
+    const blob = new Blob(
+        [content],
+        { type: 'application/json;charset=utf-8' }
+    );
 
- a.href=url;
- a.download=filename;
- a.click();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
 
- setTimeout(()=>URL.revokeObjectURL(url),1000);
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 /* ================= STUDENT DASHBOARD ================= */
