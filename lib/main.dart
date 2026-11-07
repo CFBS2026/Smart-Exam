@@ -1,13 +1,10 @@
-
 import 'dart:io';
+import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
-import 'package:webview_flutter_android/
-import 'dart:convert';
-import 'dart:typed_data';
-import 'package:file_picker/file_picker.dart';
-webview_flutter_android.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:file_picker/file_picker.dart';
 
 void main() {
@@ -39,7 +36,6 @@ class _SmartExamHomeState extends State<SmartExamHome> {
   late final WebViewController controller;
 
   bool loading = true;
-  bool filePickerReady = false;
 
   @override
   void initState() {
@@ -50,6 +46,7 @@ class _SmartExamHomeState extends State<SmartExamHome> {
   Future<void> _initializeWebView() async {
     controller = WebViewController();
 
+    // JavaScript Support
     await controller.setJavaScriptMode(
       JavaScriptMode.unrestricted,
     );
@@ -58,6 +55,67 @@ class _SmartExamHomeState extends State<SmartExamHome> {
       const Color(0xFF0A192F),
     );
 
+    // Question Export Channel
+    await controller.addJavaScriptChannel(
+      'ExportChannel',
+      onMessageReceived: (JavaScriptMessage message) async {
+        try {
+          final dynamic decoded = jsonDecode(message.message);
+
+          if (decoded is! Map) {
+            throw Exception('Invalid export data');
+          }
+
+          final String filename =
+              decoded['filename']?.toString() ??
+              'CFBS_Question_File.json';
+
+          final String content =
+              decoded['content']?.toString() ?? '';
+
+          if (content.isEmpty) {
+            throw Exception('Question data is empty');
+          }
+
+          final String? savedPath =
+              await FilePicker.platform.saveFile(
+            dialogTitle: 'Save Question File',
+            fileName: filename,
+            type: FileType.custom,
+            allowedExtensions: ['json'],
+            bytes: Uint8List.fromList(
+              utf8.encode(content),
+            ),
+          );
+
+          if (!mounted) return;
+
+          if (savedPath != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Question File သိမ်းဆည်းပြီးပါပြီ။',
+                ),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        } catch (e) {
+          debugPrint('Question Export Error: $e');
+
+          if (!mounted) return;
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Export Error: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      },
+    );
+
+    // Page Navigation and Loading
     await controller.setNavigationDelegate(
       NavigationDelegate(
         onPageFinished: (url) {
@@ -75,15 +133,16 @@ class _SmartExamHomeState extends State<SmartExamHome> {
       ),
     );
 
-    // Android File Picker Support
+    // Android File Import Support
     if (Platform.isAndroid) {
       final androidController =
           controller.platform as AndroidWebViewController;
 
       await androidController.setOnShowFileSelector(
-        (params) async {
+        (FileSelectorParams params) async {
           try {
-            final result = await FilePicker.platform.pickFiles(
+            final result =
+                await FilePicker.platform.pickFiles(
               type: FileType.any,
               allowMultiple: false,
               withData: false,
@@ -105,15 +164,14 @@ class _SmartExamHomeState extends State<SmartExamHome> {
               Uri.file(filePath).toString(),
             ];
           } catch (e) {
-            debugPrint('File Picker Error: $e');
+            debugPrint('File Import Error: $e');
             return <String>[];
           }
         },
       );
-
-      filePickerReady = true;
     }
 
+    // Load HTML Application
     await controller.loadFlutterAsset('index.html');
   }
 
