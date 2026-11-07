@@ -182,7 +182,52 @@ jobs:
 
       - name: Install Dependencies
         run: flutter pub get
+      
+      - name: Fix Plugin Compile SDK 36
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
 
+          pub_cache = Path.home() / ".pub-cache" / "hosted" / "pub.dev"
+
+          if not pub_cache.exists():
+              raise SystemExit("Pub cache not found.")
+
+          count = 0
+
+          for p in pub_cache.glob("*/android/build.gradle*"):
+              content = p.read_text()
+
+              updated = re.sub(
+                  r'compileSdkVersion\s+34\b',
+                  'compileSdkVersion 36',
+                  content
+              )
+
+              updated = re.sub(
+                  r'compileSdk\s*=\s*34\b',
+                  'compileSdk = 36',
+                  updated
+              )
+
+              updated = re.sub(
+                  r'compileSdk\s+34\b',
+                  'compileSdk 36',
+                  updated
+              )
+
+              if updated != content:
+                  p.write_text(updated)
+                  print("Updated:", p)
+                  count += 1
+
+          print("Plugin Gradle files updated:", count)
+          PY
+
+      - name: Build APK
+        run: flutter build apk --release
       - name: Build APK
         run: flutter build apk --release
 
