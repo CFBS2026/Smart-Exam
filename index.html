@@ -124,15 +124,8 @@ SMART EXAMINATION SYSTEM
 
 <p id="loginMsg" style="color:#ff7777;text-align:center"></p>
 
-<div class="notice">
-စမ်းသပ်အကောင့်များ<br>
-ကျောင်းအုပ် — principal / 123<br>
-ဆရာ — teacher / 123<br>
-ကျောင်းသား — student / 123
-</div>
 </div>
 </section>
-
 <!-- DASHBOARD -->
 <section id="dashboardSection" class="hidden">
 <h3 id="welcomeText" style="text-align:center"></h3>
@@ -1654,33 +1647,106 @@ function drawMyResults(){
  </div>`;
 }
 
-/* ================= TEACHER RESULTS ================= */
+
+<//* ================= TEACHER RESULTS ================= */
 
 function showTeacherResults(){
 
  if(currentUser.role!=='teacher')return;
 
- const list=read(KEY.results);
-
  $('dynamicView').innerHTML=`
  <div class="box">
- <h3>ရလဒ်များ</h3>
+
+ <h3>စာမေးပွဲရလဒ်များ</h3>
+
+ <label>အတန်းရွေးချယ်ပါ</label>
+ <select id="resultGrade" onchange="drawTeacherResults()">
+ <option value="all">အတန်းအားလုံး</option>
+ ${gradeOptions()}
+ </select>
+
+ <label>စာမေးပွဲအမျိုးအစား</label>
+ <select id="resultExam" onchange="drawTeacherResults()">
+ <option value="all">စာမေးပွဲအားလုံး</option>
+ ${EXAMS.map(x=>`
+ <option value="${esc(x)}">${esc(x)}</option>
+ `).join('')}
+ </select>
+
+ <div id="teacherResultTable"></div>
+
+ </div>
+ `;
+
+ drawTeacherResults();
+}
+
+function drawTeacherResults(){
+
+ if(!$('teacherResultTable'))return;
+
+ const selectedGrade=$('resultGrade').value;
+ const selectedExam=$('resultExam').value;
+
+ let list=read(KEY.results);
+
+ if(selectedGrade!=='all'){
+  list=list.filter(r=>r.gradeName===selectedGrade);
+ }
+
+ if(selectedExam!=='all'){
+  list=list.filter(r=>r.examType===selectedExam);
+ }
+
+ list.sort((a,b)=>{
+  return String(a.roll||'').localeCompare(
+   String(b.roll||''),
+   undefined,
+   {numeric:true}
+  );
+ });
+
+ $('teacherResultTable').innerHTML=`
+
+ <p class="muted">
+ ရလဒ်စုစုပေါင်း — ${list.length} ဦး
+ </p>
+
  <div class="table-wrap">
  <table>
- <tr><th>အမည်</th><th>ID</th><th>အတန်း</th><th>စာမေးပွဲ</th><th>ရမှတ်</th><th>Grade</th></tr>
- ${list.map(r=>`
+
  <tr>
- <td>${esc(r.student)}</td>
+ <th>စဉ်</th>
+ <th>ID</th>
+ <th>အမည်</th>
+ <th>ရမှတ်</th>
+ <th>Grade</th>
+ </tr>
+
+ ${list.map((r,i)=>`
+ <tr>
+ <td>${i+1}</td>
  <td>${esc(r.roll)}</td>
- <td>${esc(r.gradeName)}</td>
- <td>${esc(r.title)}</td>
+ <td>${esc(r.student)}</td>
  <td>${r.score}/${r.total}</td>
- <td>${r.manualPending?'Pending':r.grade}</td>
- </tr>`).join('')||'<tr><td colspan="6">ရလဒ်မရှိသေးပါ။</td></tr>'}
+ <td>${r.manualPending?'Pending':esc(r.grade)}</td>
+ </tr>
+ `).join('')||
+
+ `<tr>
+ <td colspan="5" style="text-align:center">
+ ရလဒ်မရှိသေးပါ။
+ </td>
+ </tr>`
+ }
+
  </table>
  </div>
- </div>`;
-}
-</script>
+
+ <button class="secondary" onclick="window.print()">
+ ရလဒ် Print ထုတ်ရန်
+ </button>
+ `;
+}>
 </body>
 </html>
