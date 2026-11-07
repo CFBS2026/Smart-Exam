@@ -29,13 +29,20 @@ jobs:
           for name in os.listdir("."):
               print(repr(name), "FILE:", os.path.isfile(name))
           PY
-
       - name: Check Required Files
+        shell: bash
         run: |
-          test -f pubspec.yaml
-          test -f index.html
-          test -f lib/main.dart
+          echo "PUBSPEC:"
+          if [ -f pubspec.yaml ]; then echo "FOUND"; else echo "MISSING"; fi
 
+          echo "HTML:"
+          if [ -f index.html ]; then echo "FOUND"; else echo "MISSING"; fi
+
+          echo "MAIN DART:"
+          if [ -f lib/main.dart ]; then echo "FOUND"; else echo "MISSING"; fi
+
+          echo "LIB FOLDER:"
+          ls -la lib/ || true
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
