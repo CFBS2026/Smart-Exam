@@ -1,170 +1,52 @@
-
-name: Build CFBS Smart Examination APK
+name: Build Android APK
 
 on:
-  workflow_dispatch:
   push:
     branches:
       - main
-    paths:
-      - 'index.html'
-      - '.github/workflows/build-apk.yml'
-
-permissions:
-  contents: read
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch: # GitHub ပေါ်မှ ကိုယ်တိုင် နှိပ်၍ run ချင်ပါက သုံးနိုင်ရန်
 
 jobs:
   build:
-    name: Build Android APK
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Source
+      # 1. Checkout repository code
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Check HTML File
-        run: |
-          if [ ! -f index.html ]; then
-            echo "ERROR: index.html not found in repository root"
-            exit 1
-          fi
-
-      - name: Setup Java
+      # 2. Setup Java Environment (Flutter Android build အတွက် လိုအပ်ပါသည်)
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          distribution: temurin
+          distribution: 'temurin'
           java-version: '17'
+          cache: 'gradle'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install Android SDK
-        run: |
-          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
+      # 3. Setup Flutter Environment
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
         with:
-          gradle-version: '8.9'
+          flutter-version: '3.x' # သို့မဟုတ် မိမိသုံးထားသော Version (ဥပမာ 3.24.x)
+          channel: 'stable'
+          cache: true
 
-      - name: Create Android Project
-        run: |
-          mkdir -p app/src/main/assets
-          mkdir -p app/src/main/java/com/cfbs/exam
+      # 4. Install Dependencies
+      - name: Install Dependencies
+        run: flutter pub get
 
-          cp index.html app/src/main/assets/index.html
-
-          cat > settings.gradle <<'EOF'
-          pluginManagement {
-              repositories {
-                  google()
-                  mavenCentral()
-                  gradlePluginPortal()
-              }
-          }
-          dependencyResolutionManagement {
-              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-          }
-          rootProject.name = "CFBS-Smart-Examination"
-          include ':app'
-          EOF
-
-          cat > build.gradle <<'EOF'
-          plugins {
-              id 'com.android.application' version '8.7.3' apply false
-          }
-          EOF
-
-          cat > app/build.gradle <<'EOF'
-          plugins {
-              id 'com.android.application'
-          }
-
-          android {
-              namespace 'com.cfbs.exam'
-              compileSdk 35
-
-              defaultConfig {
-                  applicationId 'com.cfbs.exam'
-                  minSdk 23
-                  targetSdk 35
-                  versionCode 1
-                  versionName '1.0'
-              }
-          }
-          EOF
-
-          cat > app/src/main/AndroidManifest.xml <<'EOF'
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <application
-                  android:theme="@android:style/Theme.Material.Light.NoActionBar"
-                  android:label="CFBS Smart Examination"
-                  android:usesCleartextTraffic="true"
-                  android:hardwareAccelerated="true">
-                  <activity
-                      android:name=".MainActivity"
-                      android:exported="true">
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN"/>
-                          <category android:name="android.intent.category.LAUNCHER"/>
-                      </intent-filter>
-                  </activity>
-              </application>
-          </manifest>
-          EOF
-
-          cat > app/src/main/java/com/cfbs/exam/MainActivity.java <<'EOF'
-          package com.cfbs.exam;
-
-          import android.app.Activity;
-          import android.os.Bundle;
-          import android.webkit.WebSettings;
-          import android.webkit.WebView;
-          import android.webkit.WebViewClient;
-
-          public class MainActivity extends Activity {
-              private WebView webView;
-
-              @Override
-              protected void onCreate(Bundle savedInstanceState) {
-                  super.onCreate(savedInstanceState);
-
-                  webView = new WebView(this);
-
-                  WebSettings settings = webView.getSettings();
-                  settings.setJavaScriptEnabled(true);
-                  settings.setDomStorageEnabled(true);
-                  settings.setDatabaseEnabled(true);
-                  settings.setAllowFileAccess(true);
-                  settings.setAllowContentAccess(true);
-
-                  webView.setWebViewClient(new WebViewClient());
-                  webView.loadUrl("file:///android_asset/index.html");
-
-                  setContentView(webView);
-              }
-
-              @Override
-              public void onBackPressed() {
-                  if (webView != null && webView.canGoBack()) {
-                      webView.goBack();
-                  } else {
-                      super.onBackPressed();
-                  }
-              }
-          }
-          EOF
-
+      # 5. Build Release APK (ကျောင်း/လုပ်ငန်းသုံး PWA & App များအတွက်)
       - name: Build APK
-        run: gradle --no-daemon assembleDebug
+        run: flutter build apk --release
 
-      - name: Upload APK
+      # 6. Build ထွက်လာသော APK ဖိုင်ကို GitHub Actions တာဝန်ပြီးလျှင် Download ဆွဲနိုင်အောင် Artifact အဖြစ် သိမ်းဆည်းခြင်း
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: CFBS-Smart-Examination-APK
-          path: app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
+          name: release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
