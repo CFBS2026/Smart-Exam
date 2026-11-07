@@ -16,74 +16,129 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      # 1. Download Repository
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Diagnose Project Files
+      # 2. Fix and Verify Project Files
+      - name: Fix Project Files
         shell: bash
         run: |
-          echo "===== ROOT FILES ====="
-          ls -lab
           python3 - <<'PY'
           import os
+          import unicodedata
+
+          print("===== ORIGINAL FILES =====")
           for name in os.listdir("."):
-              print(repr(name), "FILE:", os.path.isfile(name))
+              print(repr(name))
+
+          def normalize(name):
+              name = unicodedata.normalize("NFKC", name)
+              return "".join(
+                  c for c in name
+                  if unicodedata.category(c) not in ("Cf", "Cc")
+                  and not c.isspace()
+              ).lower()
+
+          matches = [
+              name for name in os.listdir(".")
+              if normalize(name) == "pubspec.yaml"
+              and os.path.isfile(name)
+          ]
+
+          if len(matches) != 1:
+              raise SystemExit(
+                  "ERROR: Expected one pubspec.yaml file, found "
+                  + str(len(matches))
+              )
+
+          source = matches[0]
+
+          if source != "pubspec.yaml":
+              os.rename(source, "pubspec.yaml")
+              print("Corrected filename:", repr(source))
+
+          with open("pubspec.yaml", "r", encoding="utf-8-sig") as f:
+              content = f.read()
+
+          with open("pubspec.yaml", "w", encoding="utf-8") as f:
+              f.write(content)
+
+          required = [
+              "pubspec.yaml",
+              "index.html",
+              "lib/main.dart",
+              "android/app/src/main/AndroidManifest.xml"
+          ]
+
+          print("===== VERIFY FILES =====")
+
+          for path in required:
+              if not os.path.isfile(path):
+                  raise SystemExit("MISSING FILE: " + path)
+              print("FOUND:", path)
+
+          print("All required files verified.")
           PY
-      - name: Check Required Files
-        shell: bash
-        run: |
-          echo "PUBSPEC:"
-          if [ -f pubspec.yaml ]; then echo "FOUND"; else echo "MISSING"; fi
 
-          echo "HTML:"
-          if [ -f index.html ]; then echo "FOUND"; else echo "MISSING"; fi
-
-          echo "MAIN DART:"
-          if [ -f lib/main.dart ]; then echo "FOUND"; else echo "MISSING"; fi
-
-          echo "LIB FOLDER:"
-          ls -la lib/ || true
+      # 3. Setup Java
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
+      # 4. Setup Flutter
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
 
-      - name: Generate Android Project
-        run: |
-          flutter create --platforms=android --project-name smart_exam --org com.cfbs --no-pub _android_template
-          cp -R _android_template/android ./android
-          rm -rf _android_template
-
-      
-      - name: Install Dependencies
-        working-directory: ${{ github.workspace }}
+      # 5. Add Internet Permission
+      - name: Configure Android Internet
         shell: bash
         run: |
-          echo "PROJECT LOCATION:"
-          pwd
-          echo "PROJECT FILES:"
-          ls -la
-          echo "CHECK PUBSPEC:"
-          if [ ! -f pubspec.yaml ]; then
-            echo "ERROR: pubspec.yaml not found in repository root."
-            exit 1
-          fi
-          flutter pub get
+          python3 - <<'PY'
+          from pathlib import Path
 
+          p = Path("android/app/src/main/AndroidManifest.xml")
+          s = p.read_text(encoding="utf-8")
 
+          permission = (
+              '<uses-permission android:name="android.permission.INTERNET"/>'
+          )
+
+          if permission not in s:
+              s = s.replace(
+                  '<application',
+                  permission + '\n    <application',
+                  1
+              )
+
+          p.write_text(s, encoding="utf-8")
+          print("Internet permission configured.")
+          PY
+
+      # 6. Install Packages
+      - name: Install Dependencies
+        run: flutter pub get
+
+      # 7. Build Release APK
       - name: Build APK
         run: flutter build apk --release
 
+      # 8. Verify APK
+      - name: Verify APK
+        run: |
+          test -f build/app/outputs/flutter-apk/app-release.apk
+          ls -lh build/app/outputs/flutter-apk/app-release.apk
+
+      # 9. Upload APK
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: CFBS-Smart-Exam-APK
           path: build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
+          retention-days: 14
