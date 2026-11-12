@@ -903,32 +903,145 @@ function showTeacherImport(){
  </div>`;
 }
 
-function importTeacherQuestionFile(){
- const file=$('teacherPackageFile').files[0];
- if(!file)return alert('Question File (.json) ရွေးပါ။');
+async function importTeacherQuestionFile() {
+    const file = $('teacherPackageFile').files[0];
 
- file.text().then(text=>{
-  const data=JSON.parse(text);
-  if(!data.exam||!data.exam.questions)
-  throw new Error('Invalid');
+    if (!file) {
+        return alert('Question File (.json) ရွေးပါ။');
+    }
 
-  const exam=data.exam;
-  const questions=exam.questions;
+    try {
+        const raw = await file.text();
+        const data = JSON.parse(raw);
 
-  const bank=read(KEY.questions);
-  
-  questions.forEach(q=>{
-   bank.push({
-    ...q,
-    owner: currentUser.user
-   });
-  });
+        // JSON ပုံစံအမျိုးမျိုးကို လက်ခံခြင်း
+        const exam = data.exam || {};
+        const questions =
+            exam.questions ||
+            data.questions ||
+            [];
 
-  save(KEY.questions,bank);
-  alert('မေးခွန်းများ Question Bank ထဲသို့ အောင်မြင်စွာ ဝင်ရောက်သွားပါပြီ။');
-  showQuestionBank();
- }).catch(()=>alert('ဖိုင်ဖတ်ရှု၍ မရပါ။ မှန်ကန်သော JSON ဖိုင် ဟုတ်မဟုတ် စစ်ဆေးပါ။'));
+        if (!Array.isArray(questions) || questions.length === 0) {
+            throw new Error('မေးခွန်းများ မတွေ့ပါ။');
+        }
+
+        const title = data.title || exam.title ||
+                      file.name.replace(/\.json$/i, '');
+
+        const grade = exam.grade ||
+                      data.grade || currentUser.grade ||
+                      'Grade 12';
+
+        const combo = exam.combo ||
+                      data.combo || 'Combination 1';
+
+        const subject = exam.subject ||
+                        data.subject || 'သင်္ချာ';
+
+        const chapter = exam.chapter ||
+                        data.chapter || title;
+
+        const bank = read(KEY.questions);
+
+        let added = 0;
+        let skipped = 0;
+
+        questions.forEach((q, index) => {
+
+            const questionText = q.text || q.question || '';
+
+            if (!questionText.trim()) {
+                skipped++;
+                return;
+            }
+
+            const options = (q.options || []).map((op, i) => {
+                return String(op)
+                    .replace(/^[A-D][.)]\s*/i, '')
+                    .trim();
+            });
+
+            const answer = String(
+                q.answer || q.correct_answer || ''
+            ).trim().toUpperCase();
+
+            const type = q.type ||
+                         (options.length === 4 ? 'mcq' : 'short');
+
+            const sourceId = String(q.id ?? index + 1);
+
+            const importKey =
+                file.name + '|' + sourceId;
+
+            // ထပ်မံ Import လုပ်လျှင် မေးခွန်းထပ်မပွားစေရန်
+            if (bank.some(x =>
+                x.owner === currentUser.user &&
+                x.importKey === importKey
+            )) {
+                skipped++;
+                return;
+            }
+
+            const item = {
+                id: newId(),
+                grade: q.grade || grade,
+                combo: q.combo || combo,
+                subject: q.subject || subject,
+                chapter: q.chapter || chapter,
+                text: questionText.trim(),
+                type: type,
+                mark: Number(q.mark) || 1,
+                owner: currentUser.user,
+                importKey: importKey
+            };
+
+            if (type === 'mcq') {
+
+                if (options.length !== 4 ||
+                    !['A', 'B', 'C', 'D'].includes(answer)) {
+                    skipped++;
+                    return;
+                }
+
+                item.options = options;
+                item.answer = answer;
+
+            } else if (type === 'tf' || type === 'fill' ||
+                       type === 'short') {
+
+                item.answer = q.answer ||
+                              q.correct_answer || '';
+            }
+
+            bank.push(item);
+            added++;
+        });
+
+        if (added === 0) {
+            return alert(
+                'မေးခွန်းအသစ် မထည့်နိုင်ပါ။ ဖိုင်ထဲရှိမေးခွန်းများကို စစ်ဆေးပါ။'
+            );
+        }
+
+        save(KEY.questions, bank);
+
+        alert(
+            'Import အောင်မြင်ပါသည်။\n\n' +
+            'ထည့်သွင်းပြီး: ' + added + ' ခု\n' +
+            'ကျော်သွားသော: ' + skipped + ' ခု'
+        );
+
+        showQuestionBank();
+
+    } catch (error) {
+        console.error(error);
+        alert(
+            'JSON ဖိုင်ဖတ်၍မရပါ။\n' + error.message
+        );
+    }
 }
+
+
 
 /* ================= TEACHER EXAM CREATION ================= */
 
