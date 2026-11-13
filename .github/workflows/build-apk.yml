@@ -18,13 +18,20 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      
       - name: Verify Project Files
         run: |
-          test -f pubspec.yaml
-          test -f index.html
-          test -f lib/main.dart
-          test -f app_icon.png
-          echo "All required project files found."
+          echo "Checking project files..."
+          for file in pubspec.yaml index.html lib/main.dart app_icon.png; do
+            if [ -f "$file" ]; then
+              echo "FOUND: $file"
+            else
+              echo "MISSING: $file"
+            fi
+          done
+          echo ""
+          echo "Repository file list:"
+          find . -maxdepth 3 -type f | sort | head -200
 
       - name: Setup Java
         uses: actions/setup-java@v4
