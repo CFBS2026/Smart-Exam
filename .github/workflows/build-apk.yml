@@ -1,78 +1,36 @@
 name: Build CFBS Smart Exam APK
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
-      - master
-  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
   build:
+    name: Build Android APK
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Fix and Verify Files
-        shell: bash
+      - name: Verify Project Files
         run: |
-          python3 - <<'PY'
-          import os
-          import unicodedata
-
-          def normalize(name):
-              name = unicodedata.normalize("NFKC", name)
-              return "".join(
-                  c for c in name
-                  if not c.isspace()
-                  and unicodedata.category(c) not in ("Cf", "Cc")
-              ).lower()
-
-          matches = [
-              n for n in os.listdir(".")
-              if normalize(n) == "pubspec.yaml"
-              and os.path.isfile(n)
-          ]
-
-          if len(matches) != 1:
-              raise SystemExit(
-                  "Expected one pubspec.yaml; found: " + repr(matches)
-              )
-
-          if matches[0] != "pubspec.yaml":
-              os.rename(matches[0], "pubspec.yaml")
-
-          with open("pubspec.yaml", encoding="utf-8-sig") as f:
-              content = f.read()
-
-          with open("pubspec.yaml", "w", encoding="utf-8") as f:
-              f.write(content)
-
-          required = [
-              "pubspec.yaml",
-              "index.html",
-              "lib/main.dart",
-              "app_icon.png"
-          ]
-
-          for path in required:
-              if not os.path.isfile(path):
-                  raise SystemExit("MISSING: " + path)
-              print("FOUND:", path)
-
-          print("Project files verified.")
-          PY
+          test -f pubspec.yaml
+          test -f index.html
+          test -f lib/main.dart
+          test -f app_icon.png
+          echo "All required project files found."
 
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '21'
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -80,7 +38,12 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Generate Android Folder
+      - name: Show Flutter and Java Versions
+        run: |
+          flutter --version
+          java -version
+
+      - name: Generate Android Project
         run: |
           flutter create \
             --platforms=android \
@@ -89,57 +52,56 @@ jobs:
             --no-pub \
             /tmp/smart_exam_template
 
-          cp -R /tmp/smart_exam_template/android ./android
+          cp -r /tmp/smart_exam_template/android ./android
 
-          echo "Android project generated."
-
-      - name: Set Android Compile SDK 36
-        shell: bash
+      - name: Configure Android SDK and Lint
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          import re
 
-          files = [
-              Path("android/app/build.gradle.kts"),
-              Path("android/app/build.gradle")
-          ]
+          app_gradle = Path("android/app/build.gradle")
+          if not app_gradle.exists():
+              app_gradle = Path("android/app/build.gradle.kts")
 
-          gradle = next((p for p in files if p.exists()), None)
+          if not app_gradle.exists():
+              raise SystemExit("Android app Gradle file not found")
 
-          if gradle is None:
-              raise SystemExit("Android app Gradle file not found.")
+          content = app_gradle.read_text()
 
-          content = gradle.read_text()
+          content = content.replace(
+              "compileSdk = flutter.compileSdkVersion",
+              "compileSdk = 36"
+          )
+          content = content.replace(
+              "compileSdkVersion flutter.compileSdkVersion",
+              "compileSdkVersion 36"
+          )
 
-          if gradle.name.endswith(".kts"):
-              content, count = re.subn(
-                  r'compileSdk\s*=\s*[^\n]+',
-                  'compileSdk = 36',
-                  content,
-                  count=1
-              )
-          else:
-              content, count = re.subn(
-                  r'compileSdkVersion\s+.*',
-                  'compileSdkVersion 36',
-                  content,
-                  count=1
-              )
+          app_gradle.write_text(content)
 
-              if count == 0:
-                  content, count = re.subn(
-                      r'compileSdk\s+.*',
-                      'compileSdk 36',
-                      content,
-                      count=1
-                  )
+          root_gradle = Path("android/build.gradle")
 
-          if count == 0:
-              raise SystemExit("Could not update compileSdk.")
+          if not root_gradle.exists():
+              raise SystemExit("android/build.gradle not found")
 
-          gradle.write_text(content)
-          print("compileSdk updated to 36.")
+          lint_config = """
+          
+          // Disable release lint tasks to avoid the webview plugin lint crash.
+          subprojects {
+              tasks.configureEach {
+                  if (name.startsWith("lintVital")) {
+                      enabled = false
+                  }
+              }
+          }
+          """
+
+          root_content = root_gradle.read_text()
+
+          if "Disable release lint tasks" not in root_content:
+              root_gradle.write_text(root_content + lint_config)
+
+          print("Android SDK and lint configuration completed.")
           PY
 
       - name: Configure App Icon
@@ -151,90 +113,47 @@ jobs:
             android: true
             ios: false
             image_path: "app_icon.png"
-            adaptive_icon_background: "#0A192F"
-            adaptive_icon_foreground: "app_icon.png"
+            min_sdk_android: 21
           EOF
 
           dart run flutter_launcher_icons
 
-          echo "CFBS App Icon configured."
-
-      - name: Configure Internet Permission
+      - name: Configure Android Internet Permission
         run: |
           python3 - <<'PY'
           from pathlib import Path
 
-          p = Path("android/app/src/main/AndroidManifest.xml")
-          s = p.read_text()
+          manifest = Path("android/app/src/main/AndroidManifest.xml")
+          content = manifest.read_text()
 
           permission = '<uses-permission android:name="android.permission.INTERNET"/>'
 
-          if permission not in s:
-              s = s.replace(
+          if permission not in content:
+              content = content.replace(
                   '<application',
                   permission + '\n    <application',
                   1
               )
 
-          p.write_text(s)
-          print("Internet permission added.")
+          manifest.write_text(content)
           PY
 
-      - name: Install Dependencies
-        run: flutter pub get
-      
-      - name: Fix Plugin Compile SDK 36
-        shell: bash
+      - name: Get Flutter Dependencies
         run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
+          flutter pub get
 
-          pub_cache = Path.home() / ".pub-cache" / "hosted" / "pub.dev"
-
-          if not pub_cache.exists():
-              raise SystemExit("Pub cache not found.")
-
-          count = 0
-
-          for p in pub_cache.glob("*/android/build.gradle*"):
-              content = p.read_text()
-
-              updated = re.sub(
-                  r'compileSdkVersion\s+34\b',
-                  'compileSdkVersion 36',
-                  content
-              )
-
-              updated = re.sub(
-                  r'compileSdk\s*=\s*34\b',
-                  'compileSdk = 36',
-                  updated
-              )
-
-              updated = re.sub(
-                  r'compileSdk\s+34\b',
-                  'compileSdk 36',
-                  updated
-              )
-
-              if updated != content:
-                  p.write_text(updated)
-                  print("Updated:", p)
-                  count += 1
-
-          print("Plugin Gradle files updated:", count)
-          PY
-
-      - name: Build APK
-        run: flutter build apk --release
-      - name: Build APK
-        run: flutter build apk --release
+      - name: Build Release APK
+        run: |
+          flutter build apk --release
 
       - name: Verify APK
         run: |
-          test -f build/app/outputs/flutter-apk/app-release.apk
-          ls -lh build/app/outputs/flutter-apk/app-release.apk
+          APK="build/app/outputs/flutter-apk/app-release.apk"
+          if [ ! -f "$APK" ]; then
+            echo "ERROR: APK was not generated."
+            exit 1
+          fi
+          ls -lh "$APK"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
@@ -242,4 +161,3 @@ jobs:
           name: CFBS-Smart-Exam-APK
           path: build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
-          retention-days: 14
