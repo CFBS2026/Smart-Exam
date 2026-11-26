@@ -1,65 +1,3 @@
-name: Build CFBS Smart Exam APK
-
-on:
-  workflow_dispatch:
-  push:
-    branches:
-      - main
-
-permissions:
-  contents: read
-
-jobs:
-  build:
-    name: Build Android APK
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Verify Project Files
-        run: |
-          echo "Checking project files..."
-          for file in pubspec.yaml index.html lib/main.dart app_icon.png; do
-            if [ -f "$file" ]; then
-              echo "FOUND: $file"
-            else
-              echo "MISSING: $file"
-            fi
-          done
-          echo ""
-          echo "Repository file list:"
-          find . -maxdepth 3 -type f | sort | head -200
-
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '21'
-
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-
-      - name: Show Flutter and Java Versions
-        run: |
-          flutter --version
-          java -version
-
-      - name: Generate Android Project
-        run: |
-          flutter create \
-            --platforms=android \
-            --project-name smart_exam \
-            --org com.cfbs \
-            --no-pub \
-            /tmp/smart_exam_template
-
-          cp -r /tmp/smart_exam_template/android ./android
-
       - name: Configure Android SDK and Lint
         run: |
           python3 - <<'PY'
@@ -86,32 +24,62 @@ jobs:
           if not root_gradle.exists():
               raise SystemExit("Android root Gradle file (build.gradle or build.gradle.kts) not found")
 
-          extra_lines = [
-              "",
-              "// Force subproject compileSdk to 36 and disable release lint tasks.",
-              "subprojects {",
-              "    afterEvaluate {",
-              "        val ext = extensions.findByName(\"android\")",
-              "        if (ext != null) {",
-              "            try {",
-              "                val setCompileSdk = ext.javaClass.getMethod(\"setCompileSdk\", Int::class.javaPrimitiveType)",
-              "                setCompileSdk.invoke(ext, 36)",
-              "            } catch (_: Exception) {",
-              "                try {",
-              "                    val setCompileSdkVersion = ext.javaClass.getMethod(\"setCompileSdkVersion\", Int::class.javaPrimitiveType)",
-              "                    setCompileSdkVersion.invoke(ext, 36)",
-              "                } catch (_: Exception) {}",
-              "            }",
-              "        }",
-              "    }",
-              "    tasks.configureEach {",
-              '        if (name.startsWith("lintVital")) {',
-              "            enabled = false",
-              "        }",
-              "    }",
-              "}",
-              "",
-          ]
+          if root_gradle.suffix == ".kts":
+              extra_lines = [
+                  "",
+                  "// Force subproject compileSdk to 36 and disable release lint tasks.",
+                  "gradle.projectsEvaluated {",
+                  "    rootProject.subprojects.forEach { sub ->",
+                  '        val ext = sub.extensions.findByName("android")',
+                  "        if (ext != null) {",
+                  "            try {",
+                  '                val m = ext.javaClass.getMethod("setCompileSdk", Int::class.javaPrimitiveType)',
+                  "                m.invoke(ext, 36)",
+                  "            } catch (_: Exception) {",
+                  "                try {",
+                  '                    val m2 = ext.javaClass.getMethod("setCompileSdkVersion", Int::class.javaPrimitiveType)',
+                  "                    m2.invoke(ext, 36)",
+                  "                } catch (_: Exception) {}",
+                  "            }",
+                  "        }",
+                  "    }",
+                  "}",
+                  "subprojects {",
+                  "    tasks.configureEach {",
+                  '        if (name.startsWith("lintVital")) {',
+                  "            enabled = false",
+                  "        }",
+                  "    }",
+                  "}",
+                  "",
+              ]
+          else:
+              extra_lines = [
+                  "",
+                  "// Force subproject compileSdk to 36 and disable release lint tasks.",
+                  "gradle.projectsEvaluated {",
+                  "    rootProject.subprojects.each { sub ->",
+                  "        def ext = sub.extensions.findByName('android')",
+                  "        if (ext != null) {",
+                  "            try {",
+                  "                ext.compileSdk = 36",
+                  "            } catch (Exception ignored) {",
+                  "                try {",
+                  "                    ext.compileSdkVersion 36",
+                  "                } catch (Exception ignored2) {}",
+                  "            }",
+                  "        }",
+                  "    }",
+                  "}",
+                  "subprojects {",
+                  "    tasks.configureEach {",
+                  "        if (name.startsWith('lintVital')) {",
+                  "            enabled = false",
+                  "        }",
+                  "    }",
+                  "}",
+                  "",
+              ]
 
           root_content = root_gradle.read_text()
           if "Force subproject compileSdk to 36" not in root_content:
@@ -119,146 +87,3 @@ jobs:
 
           print("Android SDK and lint configuration completed.")
           PY
-
-
-      - name: Configure App Icon
-        run: |
-          python3 - <<'PY'
-          import os
-          import subprocess
-          from pathlib import Path
-
-          project_dir = Path(".")
-          if not (project_dir / "pubspec.yaml").exists():
-              for p in Path(".").rglob("pubspec.yaml"):
-                  if ".git" not in p.parts:
-                      project_dir = p.parent
-                      break
-
-          os.chdir(project_dir)
-          print("Using Flutter project root:", Path.cwd())
-
-          pubspec = Path("pubspec.yaml")
-          if not pubspec.exists():
-              pubspec_lines = [
-                  "name: smart_exam",
-                  "description: CFBS Smart Examination System",
-                  "publish_to: 'none'",
-                  "version: 1.0.0+1",
-                  "",
-                  "environment:",
-                  "  sdk: '>=3.0.0 <4.0.0'",
-                  "",
-                  "dependencies:",
-                  "  flutter:",
-                  "    sdk: flutter",
-                  "  cupertino_icons: ^1.0.8",
-                  "  webview_flutter: ^4.10.0",
-                  "  webview_flutter_android: ^4.3.1",
-                  "  file_picker: ^8.1.4",
-                  "",
-                  "dev_dependencies:",
-                  "  flutter_test:",
-                  "    sdk: flutter",
-                  "  flutter_lints: ^4.0.0",
-                  "",
-                  "flutter:",
-                  "  uses-material-design: true",
-                  "  assets:",
-                  "    - index.html",
-                  "",
-              ]
-              pubspec.write_text("\n".join(pubspec_lines))
-
-          subprocess.run(["flutter", "pub", "add", "--dev", "flutter_launcher_icons"], check=True)
-
-          icon_lines = [
-              "flutter_launcher_icons:",
-              "  android: true",
-              "  ios: false",
-              '  image_path: "app_icon.png"',
-              "  min_sdk_android: 21",
-              "",
-          ]
-          Path("flutter_launcher_icons.yaml").write_text("\n".join(icon_lines))
-
-          subprocess.run(["dart", "run", "flutter_launcher_icons"], check=True)
-          PY
-
-      - name: Configure Android Internet Permission
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-
-          manifest = Path("android/app/src/main/AndroidManifest.xml")
-          content = manifest.read_text()
-
-          permission = '<uses-permission android:name="android.permission.INTERNET"/>'
-
-          if permission not in content:
-              content = content.replace(
-                  "<application",
-                  permission + "\n    <application",
-                  1,
-              )
-
-          manifest.write_text(content)
-          PY
-
-      - name: Get Flutter Dependencies
-        run: |
-          python3 - <<'PY'
-          import os
-          import subprocess
-          from pathlib import Path
-
-          project_dir = Path(".")
-          if not (project_dir / "pubspec.yaml").exists():
-              for p in Path(".").rglob("pubspec.yaml"):
-                  if ".git" not in p.parts:
-                      project_dir = p.parent
-                      break
-
-          os.chdir(project_dir)
-          subprocess.run(["flutter", "pub", "get"], check=True)
-          PY
-
-      - name: Build Release APK
-        run: |
-          python3 - <<'PY'
-          import os
-          import subprocess
-          from pathlib import Path
-
-          project_dir = Path(".")
-          if not (project_dir / "pubspec.yaml").exists():
-              for p in Path(".").rglob("pubspec.yaml"):
-                  if ".git" not in p.parts:
-                      project_dir = p.parent
-                      break
-
-          os.chdir(project_dir)
-          subprocess.run(["flutter", "build", "apk", "--release"], check=True)
-          PY
-
-      - name: Verify APK
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-
-          matches = list(Path(".").rglob("app-release.apk"))
-          matches = [p for p in matches if "outputs/flutter-apk/app-release.apk" in p.as_posix()]
-
-          if not matches:
-              raise SystemExit("ERROR: APK was not generated.")
-
-          apk = matches[0]
-          print("APK FOUND:", apk, "Size:", apk.stat().st_size, "bytes")
-          PY
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: CFBS-Smart-Exam-APK
-          path: "**/build/app/outputs/flutter-apk/app-release.apk"
-          if-no-files-found: error
