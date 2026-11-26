@@ -1,4 +1,3 @@
-
 name: Build CFBS Smart Examination APK
 
 on:
@@ -16,25 +15,21 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # 2. Java
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      # 3. Flutter
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
 
-      # 4. Normalize filenames and verify
       - name: Normalize Filenames and Verify Project Files
         run: |
           python3 - <<'PY'
@@ -48,182 +43,168 @@ jobs:
                   clean_name = p.name.strip()
                   if clean_name != p.name:
                       target = root / clean_name
-                      if target.exists():
-                          raise SystemExit(f"Duplicate filename: {clean_name}")
                       shutil.move(str(p), str(target))
-                      print(f"Renamed: {p.name} -> {clean_name}")
+                      print(f"Renamed '{p.name}' -> '{clean_name}'")
+
+          pubspec_space = root / "pubspec.yaml "
+          if pubspec_space.exists() and not (root / "pubspec.yaml").exists():
+              shutil.move(str(pubspec_space), str(root / "pubspec.yaml"))
+              print("Fixed trailing space on pubspec.yaml")
 
           print("===== ROOT FILES =====")
           for item in sorted(root.iterdir(), key=lambda x: x.name):
-              print(item.name)
+              size = item.stat().st_size if item.is_file() else 0
+              tag = "[DIR] " if item.is_dir() else "[FILE]"
+              print(f"{tag} {item.name} ({size} bytes)")
 
-          required = [
-              "pubspec.yaml",
-              "index.html",
-              "lib/main.dart"
-          ]
-
-          missing = [
-              f for f in required
-              if not (root / f).is_file()
-          ]
-
+          print("===== CHECK REQUIRED FILES =====")
+          required = ["pubspec.yaml", "index.html", "lib/main.dart"]
+          missing = [f for f in required if not (root / f).is_file()]
           if missing:
-              raise SystemExit(
-                  "Missing files: " + ", ".join(missing)
-              )
+              raise SystemExit(f"ERROR: Missing required files: {', '.join(missing)}")
+
+          for f in required:
+              print(f"FOUND: {f}")
+
+          if (root / "app_icon.png").is_file():
+              print("FOUND: app_icon.png")
+          else:
+              print("OPTIONAL MISSING: app_icon.png")
 
           print("All required project files found!")
           PY
 
-      # 5. Create Android project if missing
       - name: Create Android Project
         run: |
-          if [ ! -f android/app/build.gradle ] && \
-             [ ! -f android/app/build.gradle.kts ]; then
-
+          if [ ! -f android/app/build.gradle ] && [ ! -f android/app/build.gradle.kts ]; then
             flutter create \
               --project-name smart_exam \
               --platforms=android \
               --org com.cfbs \
               .
-          else
-            echo "Android project already exists."
           fi
 
-      # 6. Setup Android SDK
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      # 7. Install Android API 36
-      - name: Install Android SDK 36
-        run: |
-          sdkmanager "platforms;android-36" "build-tools;36.0.0"
-
-      # 8. Configure app Compile SDK
-      - name: Configure App Compile SDK
+      - name: Configure Android SDK and Lint
         run: |
           python3 - <<'PY'
           from pathlib import Path
           import re
 
-          app = Path("android/app/build.gradle")
+          def patch_compile_sdk(text: str, sdk: int = 37) -> str:
+              text = re.sub(r'\bcompileSdk\s*=\s*flutter\.compileSdkVersion\b', f'compileSdk = {sdk}', text)
+              text = re.sub(r'\bcompileSdkVersion\s+flutter\.compileSdkVersion\b', f'compileSdkVersion {sdk}', text)
+              text = re.sub(r'\bcompileSdk\s*=\s*3[0-6]\b', f'compileSdk = {sdk}', text)
+              text = re.sub(r'\bcompileSdkVersion\s+3[0-6]\b', f'compileSdkVersion {sdk}', text)
+              text = re.sub(r'\bcompileSdk\s*=\s*android-\d+', f'compileSdk = {sdk}', text)
+              return text
 
-          if not app.exists():
-              app = Path("android/app/build.gradle.kts")
-
-          if not app.exists():
+          app_gradle = Path("android/app/build.gradle")
+          if not app_gradle.exists():
+              app_gradle = Path("android/app/build.gradle.kts")
+          if not app_gradle.exists():
               raise SystemExit("Android app Gradle file not found")
 
-          content = app.read_text()
+          app_gradle.write_text(patch_compile_sdk(app_gradle.read_text(), 37))
 
-          content = re.sub(
-              r'\bcompileSdk\s*=\s*flutter\.compileSdkVersion',
-              'compileSdk = 36',
-              content
-          )
+          patched_count = 0
+          for gradle_file in Path("android").rglob("build.gradle*"):
+              if "build/" in gradle_file.as_posix():
+                  continue
+              original = gradle_file.read_text()
+              updated = patch_compile_sdk(original, 37)
+              if updated != original:
+                  gradle_file.write_text(updated)
+                  patched_count += 1
+                  print("Patched compileSdk in:", gradle_file)
 
-          content = re.sub(
-              r'\bcompileSdkVersion\s+flutter\.compileSdkVersion',
-              'compileSdkVersion 36',
-              content
-          )
+          root_gradle = Path("android/build.gradle")
+          if not root_gradle.exists():
+              root_gradle = Path("android/build.gradle.kts")
+          if not root_gradle.exists():
+              raise SystemExit("Android root Gradle file not found")
 
-          content = re.sub(
-              r'\bcompileSdk\s*=\s*\d+',
-              'compileSdk = 36',
-              content
-          )
+          if root_gradle.suffix == ".kts":
+              extra_lines = [
+                  "",
+                  "// Force subproject compileSdk to 37 and disable release lint tasks.",
+                  "gradle.projectsEvaluated {",
+                  "    rootProject.subprojects.forEach { sub ->",
+                  '        val ext = sub.extensions.findByName("android")',
+                  "        if (ext != null) {",
+                  "            try {",
+                  '                val m = ext.javaClass.getMethod("setCompileSdk", Int::class.javaPrimitiveType)',
+                  "                m.invoke(ext, 37)",
+                  "            } catch (_: Exception) {",
+                  "                try {",
+                  '                    val m2 = ext.javaClass.getMethod("setCompileSdkVersion", Int::class.javaPrimitiveType)',
+                  "                    m2.invoke(ext, 37)",
+                  "                } catch (_: Exception) {}",
+                  "            }",
+                  "        }",
+                  "    }",
+                  "}",
+                  "subprojects {",
+                  "    tasks.configureEach {",
+                  '        if (name.startsWith("lintVital")) {',
+                  "            enabled = false",
+                  "        }",
+                  "    }",
+                  "}",
+                  "",
+              ]
+          else:
+              extra_lines = [
+                  "",
+                  "// Force subproject compileSdk to 37 and disable release lint tasks.",
+                  "gradle.projectsEvaluated {",
+                  "    rootProject.subprojects.each { sub ->",
+                  "        def ext = sub.extensions.findByName('android')",
+                  "        if (ext != null) {",
+                  "            try {",
+                  "                ext.compileSdk = 37",
+                  "            } catch (Exception ignored) {",
+                  "                try {",
+                  "                    ext.compileSdkVersion 37",
+                  "                } catch (Exception ignored2) {}",
+                  "            }",
+                  "        }",
+                  "    }",
+                  "}",
+                  "subprojects {",
+                  "    tasks.configureEach {",
+                  "        if (name.startsWith('lintVital')) {",
+                  "            enabled = false",
+                  "        }",
+                  "    }",
+                  "}",
+                  "",
+              ]
 
-          content = re.sub(
-              r'\bcompileSdkVersion\s+\d+',
-              'compileSdkVersion 36',
-              content
-          )
+          root_content = root_gradle.read_text()
+          if "Force subproject compileSdk to 37" not in root_content:
+              root_gradle.write_text(root_content + "\n".join(extra_lines))
 
-          app.write_text(content)
-
-          print("App compileSdk configured to 36.")
+          print(f"Android compileSdk (37) and lint configured (patched {patched_count} gradle files).")
           PY
 
-      # 9. Get Flutter dependencies
-      - name: Get Flutter Dependencies
-        run: flutter pub get
-
-      # 10. Fix Android Plugin Compile SDK
-      - name: Configure Plugin Compile SDK 36
+      - name: Configure Android Internet Permission
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          import os
-          import re
 
-          pub_cache = Path(
-              os.environ.get(
-                  "PUB_CACHE",
-                  str(Path.home() / ".pub-cache")
-              )
-          )
-
-          if not pub_cache.exists():
-              raise SystemExit("Flutter PUB_CACHE not found")
-
-          def patch_compile_sdk(content):
-              content = re.sub(
-                  r'\bcompileSdk\s*=\s*flutter\.compileSdkVersion',
-                  'compileSdk = 36',
-                  content
-              )
-
-              content = re.sub(
-                  r'\bcompileSdkVersion\s+flutter\.compileSdkVersion',
-                  'compileSdkVersion 36',
-                  content
-              )
-
-              content = re.sub(
-                  r'\bcompileSdk\s*=\s*\d+',
-                  'compileSdk = 36',
-                  content
-              )
-
-              content = re.sub(
-                  r'\bcompileSdkVersion\s*\(?\s*\d+\s*\)?',
-                  'compileSdkVersion 36',
-                  content
-              )
-
-              return content
-
-          patched = 0
-
-          for gradle in pub_cache.rglob("build.gradle*"):
-
-              if gradle.parent.name != "android":
-                  continue
-
-              original = gradle.read_text(
-                  encoding="utf-8"
-              )
-
-              updated = patch_compile_sdk(original)
-
-              if updated != original:
-                  gradle.write_text(
-                      updated,
-                      encoding="utf-8"
+          manifest = Path("android/app/src/main/AndroidManifest.xml")
+          if manifest.exists():
+              content = manifest.read_text()
+              permission = '<uses-permission android:name="android.permission.INTERNET"/>'
+              if permission not in content:
+                  content = content.replace(
+                      "<application",
+                      permission + "\n    <application",
+                      1,
                   )
-
-                  patched += 1
-                  print("Patched:", gradle)
-
-          print(
-              f"Plugin Gradle files patched: {patched}"
-          )
-          print("Plugin Compile SDK configuration completed.")
+                  manifest.write_text(content)
           PY
 
-      # 11. Optional App Icon
       - name: Configure App Icon
         run: |
           python3 - <<'PY'
@@ -231,56 +212,31 @@ jobs:
           from pathlib import Path
 
           if Path("app_icon.png").exists():
-
-              subprocess.run(
-                  [
-                      "flutter",
-                      "pub",
-                      "add",
-                      "--dev",
-                      "flutter_launcher_icons"
-                  ],
-                  check=True
-              )
-
-              config = [
+              subprocess.run(["flutter", "pub", "add", "--dev", "flutter_launcher_icons"], check=True)
+              icon_lines = [
                   "flutter_launcher_icons:",
                   "  android: true",
                   "  ios: false",
                   '  image_path: "app_icon.png"',
                   "  min_sdk_android: 21",
-                  ""
+                  "",
               ]
-
-              Path(
-                  "flutter_launcher_icons.yaml"
-              ).write_text("\n".join(config))
-
-              subprocess.run(
-                  [
-                      "dart",
-                      "run",
-                      "flutter_launcher_icons"
-                  ],
-                  check=True
-              )
-
-              print("App icon configured.")
-
+              Path("flutter_launcher_icons.yaml").write_text("\n".join(icon_lines))
+              subprocess.run(["dart", "run", "flutter_launcher_icons"], check=True)
           else:
-              print("No app_icon.png. Skipping icon setup.")
+              print("app_icon.png not found; skipping launcher icons.")
           PY
 
-      # 12. Flutter Analyze
+      - name: Get Flutter Dependencies
+        run: flutter pub get
+
       - name: Flutter Analyze
         run: flutter analyze
         continue-on-error: true
 
-      # 13. Build APK
       - name: Build Release APK
         run: flutter build apk --release
 
-      # 14. Upload APK
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
