@@ -1,4 +1,4 @@
-name: Build CFBS Smart Exam APK
+Name: Build CFBS Smart Exam APK
 
 on:
   workflow_dispatch:
@@ -18,7 +18,6 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      
       - name: Verify Project Files
         run: |
           echo "Checking project files..."
@@ -87,12 +86,14 @@ jobs:
           app_gradle.write_text(content)
 
           root_gradle = Path("android/build.gradle")
+          if not root_gradle.exists():
+              root_gradle = Path("android/build.gradle.kts")
 
           if not root_gradle.exists():
-              raise SystemExit("android/build.gradle not found")
+              raise SystemExit("Android root Gradle file (build.gradle or build.gradle.kts) not found")
 
           lint_config = """
-          
+
           // Disable release lint tasks to avoid the webview plugin lint crash.
           subprojects {
               tasks.configureEach {
