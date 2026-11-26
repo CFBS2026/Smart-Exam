@@ -1,5 +1,5 @@
 
-name: Build CFBS Smart Exam APK
+name: Build CFBS Smart Examination APK
 
 on:
   workflow_dispatch:
@@ -7,38 +7,75 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   build:
+    name: Build Android APK
     runs-on: ubuntu-latest
 
     steps:
+      # 1. Download source code
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Java
+      # 2. Install Java
+      - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
+      # 3. Install Flutter
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
 
+      # 4. Check project files
+      - name: Check Project Files
+        run: |
+          echo "Checking project files..."
+
+          test -f pubspec.yaml || {
+            echo "ERROR: pubspec.yaml not found"
+            exit 1
+          }
+
+          test -f index.html || {
+            echo "ERROR: index.html not found"
+            exit 1
+          }
+
+          test -f lib/main.dart || {
+            echo "ERROR: lib/main.dart not found"
+            exit 1
+          }
+
+          echo "Project files found."
+
+      # 5. Create Android project
       - name: Create Android Project
         run: |
           if [ ! -f android/app/build.gradle ] && [ ! -f android/app/build.gradle.kts ]; then
-            flutter create --platforms=android --org com.cfbs.smart_exam .
+            flutter create \
+              --project-name smart_exam \
+              --platforms=android \
+              --org com.cfbs \
+              .
           fi
 
-      - name: Configure Android SDK and Lint
+      # 6. Configure Android SDK
+      - name: Configure Android SDK
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
 
           app_gradle = Path("android/app/build.gradle")
+
           if not app_gradle.exists():
               app_gradle = Path("android/app/build.gradle.kts")
 
@@ -46,23 +83,55 @@ jobs:
               raise SystemExit("Android app Gradle file not found")
 
           content = app_gradle.read_text()
-          content = content.replace("compileSdk = flutter.compileSdkVersion", "compileSdk = 36")
-          content = content.replace("compileSdkVersion flutter.compileSdkVersion", "compileSdkVersion 36")
-          content = content.replace("compileSdk = 34", "compileSdk = 36")
-          content = content.replace("compileSdkVersion 34", "compileSdkVersion 36")
+
+          content = re.sub(
+              r'compileSdk\s*=\s*flutter\.compileSdkVersion',
+              'compileSdk = 36',
+              content
+          )
+
+          content = re.sub(
+              r'compileSdkVersion\s+flutter\.compileSdkVersion',
+              'compileSdkVersion 36',
+              content
+          )
+
+          content = re.sub(
+              r'compileSdk\s*=\s*34',
+              'compileSdk = 36',
+              content
+          )
+
+          content = re.sub(
+              r'compileSdkVersion\s+34',
+              'compileSdkVersion 36',
+              content
+          )
+
           app_gradle.write_text(content)
 
-          print("Android SDK configuration completed.")
+          print("Android compileSdk configured.")
+
           PY
 
+      # 7. Install dependencies
       - name: Get Flutter Dependencies
         run: flutter pub get
 
+      # 8. Check Flutter project
+      - name: Flutter Analyze
+        run: flutter analyze
+        continue-on-error: true
+
+      # 9. Build APK
       - name: Build Release APK
         run: flutter build apk --release
 
-      - name: Upload APK
+      # 10. Upload APK
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: CFBS-Smart-Exam-APK
+          name: CFBS-Smart-Examination-APK
           path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+          retention-days: 14
