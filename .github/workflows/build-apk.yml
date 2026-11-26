@@ -1,3 +1,38 @@
+
+name: Build CFBS Smart Exam APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Create Android Project
+        run: |
+          if [ ! -f android/app/build.gradle ] && [ ! -f android/app/build.gradle.kts ]; then
+            flutter create --platforms=android --org com.cfbs.smart_exam .
+          fi
+
       - name: Configure Android SDK and Lint
         run: |
           python3 - <<'PY'
@@ -17,73 +52,17 @@
           content = content.replace("compileSdkVersion 34", "compileSdkVersion 36")
           app_gradle.write_text(content)
 
-          root_gradle = Path("android/build.gradle")
-          if not root_gradle.exists():
-              root_gradle = Path("android/build.gradle.kts")
-
-          if not root_gradle.exists():
-              raise SystemExit("Android root Gradle file (build.gradle or build.gradle.kts) not found")
-
-          if root_gradle.suffix == ".kts":
-              extra_lines = [
-                  "",
-                  "// Force subproject compileSdk to 36 and disable release lint tasks.",
-                  "gradle.projectsEvaluated {",
-                  "    rootProject.subprojects.forEach { sub ->",
-                  '        val ext = sub.extensions.findByName("android")',
-                  "        if (ext != null) {",
-                  "            try {",
-                  '                val m = ext.javaClass.getMethod("setCompileSdk", Int::class.javaPrimitiveType)',
-                  "                m.invoke(ext, 36)",
-                  "            } catch (_: Exception) {",
-                  "                try {",
-                  '                    val m2 = ext.javaClass.getMethod("setCompileSdkVersion", Int::class.javaPrimitiveType)',
-                  "                    m2.invoke(ext, 36)",
-                  "                } catch (_: Exception) {}",
-                  "            }",
-                  "        }",
-                  "    }",
-                  "}",
-                  "subprojects {",
-                  "    tasks.configureEach {",
-                  '        if (name.startsWith("lintVital")) {',
-                  "            enabled = false",
-                  "        }",
-                  "    }",
-                  "}",
-                  "",
-              ]
-          else:
-              extra_lines = [
-                  "",
-                  "// Force subproject compileSdk to 36 and disable release lint tasks.",
-                  "gradle.projectsEvaluated {",
-                  "    rootProject.subprojects.each { sub ->",
-                  "        def ext = sub.extensions.findByName('android')",
-                  "        if (ext != null) {",
-                  "            try {",
-                  "                ext.compileSdk = 36",
-                  "            } catch (Exception ignored) {",
-                  "                try {",
-                  "                    ext.compileSdkVersion 36",
-                  "                } catch (Exception ignored2) {}",
-                  "            }",
-                  "        }",
-                  "    }",
-                  "}",
-                  "subprojects {",
-                  "    tasks.configureEach {",
-                  "        if (name.startsWith('lintVital')) {",
-                  "            enabled = false",
-                  "        }",
-                  "    }",
-                  "}",
-                  "",
-              ]
-
-          root_content = root_gradle.read_text()
-          if "Force subproject compileSdk to 36" not in root_content:
-              root_gradle.write_text(root_content + "\n".join(extra_lines))
-
-          print("Android SDK and lint configuration completed.")
+          print("Android SDK configuration completed.")
           PY
+
+      - name: Get Flutter Dependencies
+        run: flutter pub get
+
+      - name: Build Release APK
+        run: flutter build apk --release
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: CFBS-Smart-Exam-APK
+          path: build/app/outputs/flutter-apk/app-release.apk
