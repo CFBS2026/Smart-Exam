@@ -84,21 +84,22 @@ jobs:
           if not root_gradle.exists():
               raise SystemExit("Android root Gradle file (build.gradle or build.gradle.kts) not found")
 
-          lint_config = """
-
-          // Disable release lint tasks to avoid the webview plugin lint crash.
-          subprojects {
-              tasks.configureEach {
-                  if (name.startsWith("lintVital")) {
-                      enabled = false
-                  }
-              }
-          }
-          """
+          lint_lines = [
+              "",
+              "// Disable release lint tasks to avoid the webview plugin lint crash.",
+              "subprojects {",
+              "    tasks.configureEach {",
+              '        if (name.startsWith("lintVital")) {',
+              "            enabled = false",
+              "        }",
+              "    }",
+              "}",
+              "",
+          ]
 
           root_content = root_gradle.read_text()
           if "Disable release lint tasks" not in root_content:
-              root_gradle.write_text(root_content + lint_config)
+              root_gradle.write_text(root_content + "\n".join(lint_lines))
 
           print("Android SDK and lint configuration completed.")
           PY
@@ -122,41 +123,47 @@ jobs:
 
           pubspec = Path("pubspec.yaml")
           if not pubspec.exists():
-              pubspec.write_text("""name: smart_exam
-description: CFBS Smart Examination System
-publish_to: 'none'
-version: 1.0.0+1
-
-environment:
-  sdk: '>=3.0.0 <4.0.0'
-
-dependencies:
-  flutter:
-    sdk: flutter
-  cupertino_icons: ^1.0.8
-  webview_flutter: ^4.10.0
-  webview_flutter_android: ^4.3.1
-  file_picker: ^8.1.4
-
-dev_dependencies:
-  flutter_test:
-    sdk: flutter
-  flutter_lints: ^4.0.0
-
-flutter:
-  uses-material-design: true
-  assets:
-    - index.html
-""")
+              pubspec_lines = [
+                  "name: smart_exam",
+                  "description: CFBS Smart Examination System",
+                  "publish_to: 'none'",
+                  "version: 1.0.0+1",
+                  "",
+                  "environment:",
+                  "  sdk: '>=3.0.0 <4.0.0'",
+                  "",
+                  "dependencies:",
+                  "  flutter:",
+                  "    sdk: flutter",
+                  "  cupertino_icons: ^1.0.8",
+                  "  webview_flutter: ^4.10.0",
+                  "  webview_flutter_android: ^4.3.1",
+                  "  file_picker: ^8.1.4",
+                  "",
+                  "dev_dependencies:",
+                  "  flutter_test:",
+                  "    sdk: flutter",
+                  "  flutter_lints: ^4.0.0",
+                  "",
+                  "flutter:",
+                  "  uses-material-design: true",
+                  "  assets:",
+                  "    - index.html",
+                  "",
+              ]
+              pubspec.write_text("\n".join(pubspec_lines))
 
           subprocess.run(["flutter", "pub", "add", "--dev", "flutter_launcher_icons"], check=True)
 
-          Path("flutter_launcher_icons.yaml").write_text("""flutter_launcher_icons:
-  android: true
-  ios: false
-  image_path: "app_icon.png"
-  min_sdk_android: 21
-""")
+          icon_lines = [
+              "flutter_launcher_icons:",
+              "  android: true",
+              "  ios: false",
+              '  image_path: "app_icon.png"',
+              "  min_sdk_android: 21",
+              "",
+          ]
+          Path("flutter_launcher_icons.yaml").write_text("\n".join(icon_lines))
 
           subprocess.run(["dart", "run", "flutter_launcher_icons"], check=True)
           PY
@@ -173,9 +180,9 @@ flutter:
 
           if permission not in content:
               content = content.replace(
-                  '<application',
-                  permission + '\n    <application',
-                  1
+                  "<application",
+                  permission + "\n    <application",
+                  1,
               )
 
           manifest.write_text(content)
