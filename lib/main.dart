@@ -67,8 +67,9 @@ class _SmartExamHomeState extends State<SmartExamHome> {
           }
 
           final String filename =
-              decoded['filename']?.toString() ??
-              'CFBS_Question_File.json';
+              decoded['filename']?.toString().trim().isNotEmpty == true
+                  ? decoded['filename'].toString().trim()
+                  : 'CFBS_Question_File.json';
 
           final String content =
               decoded['content']?.toString() ?? '';
@@ -77,24 +78,33 @@ class _SmartExamHomeState extends State<SmartExamHome> {
             throw Exception('Question data is empty');
           }
 
+          final Uint8List bytes = Uint8List.fromList(
+            utf8.encode(content),
+          );
+
           final String? savedPath =
               await FilePicker.platform.saveFile(
             dialogTitle: 'Save Question File',
             fileName: filename,
             type: FileType.custom,
             allowedExtensions: ['json'],
-            bytes: Uint8List.fromList(
-              utf8.encode(content),
-            ),
+            bytes: bytes,
           );
 
           if (!mounted) return;
 
-          if (savedPath != null) {
+          if (savedPath != null && savedPath.isNotEmpty) {
+            final File outFile = File(savedPath);
+            if (!await outFile.exists() || await outFile.length() == 0) {
+              await outFile.writeAsBytes(bytes, flush: true);
+            }
+
+            if (!mounted) return;
+
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
+              SnackBar(
                 content: Text(
-                  'Question File သိမ်းဆည်းပြီးပါပြီ။',
+                  'Question File သိမ်းဆည်းပြီးပါပြီ။ ($savedPath)',
                 ),
                 backgroundColor: Colors.green,
               ),
