@@ -30,34 +30,47 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Debug Repository Files
+      - name: Normalize Filenames and Verify Project Files
         run: |
-          echo "===== CURRENT DIRECTORY ====="
-          pwd
+          python3 - <<'PY'
+          from pathlib import Path
+          import shutil
 
-          echo "===== ROOT FILES ====="
-          ls -la
+          root = Path(".")
 
-          echo "===== SEARCH PROJECT FILES ====="
-          find . -maxdepth 5 -type f \( \
-            -name "pubspec.yaml" -o \
-            -name "index.html" -o \
-            -name "main.dart" -o \
-            -name "app_icon.png" \
-          \) -print
+          for p in list(root.iterdir()):
+              if p.is_file():
+                  clean_name = p.name.strip()
+                  if clean_name != p.name:
+                      target = root / clean_name
+                      shutil.move(str(p), str(target))
+                      print(f"Renamed '{p.name}' -> '{clean_name}'")
 
-          echo "===== CHECK REQUIRED FILES ====="
-          for f in "pubspec.yaml" "index.html" "lib/main.dart"; do
-            f=$(printf "%s" "$f" | tr -d '\r')
-            if [ -f "$f" ]; then
-              echo "FOUND: $f"
-            else
-              echo "ERROR: $f not found"
-              exit 1
-            fi
-          done
+          pubspec_space = root / "pubspec.yaml "
+          if pubspec_space.exists() and not (root / "pubspec.yaml").exists():
+              shutil.move(str(pubspec_space), str(root / "pubspec.yaml"))
+              print("Fixed trailing space on pubspec.yaml")
 
-          echo "All project files found!"
+          print("===== ROOT FILES =====")
+          for item in sorted(root.iterdir(), key=lambda x: x.name):
+              print(f"{'[DIR] ' if item.is_dir() else '[FILE]'} {item.name} ({item.stat().st_size if item.is_file() else 0} bytes)")
+
+          print("===== CHECK REQUIRED FILES =====")
+          required = ["pubspec.yaml", "index.html", "lib/main.dart"]
+          missing = [f for f in required if not (root / f).is_file()]
+          if missing:
+              raise SystemExit(f"ERROR: Missing required files: {', '.join(missing)}")
+
+          for f in required:
+              print(f"FOUND: {f}")
+
+          if (root / "app_icon.png").is_file():
+              print("FOUND: app_icon.png")
+          else:
+              print("OPTIONAL MISSING: app_icon.png")
+
+          print("All required project files found!")
+          PY
 
       - name: Create Android Project
         run: |
@@ -157,7 +170,7 @@ jobs:
           if "Force subproject compileSdk to 36" not in root_content:
               root_gradle.write_text(root_content + "\n".join(extra_lines))
 
-          print("Android compileSdk and lint configured.")
+          print("Android SDK and lint configuration completed.")
           PY
 
       - name: Configure Android Internet Permission
