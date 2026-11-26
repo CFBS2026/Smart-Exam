@@ -75,6 +75,8 @@ jobs:
           content = app_gradle.read_text()
           content = content.replace("compileSdk = flutter.compileSdkVersion", "compileSdk = 36")
           content = content.replace("compileSdkVersion flutter.compileSdkVersion", "compileSdkVersion 36")
+          content = content.replace("compileSdk = 34", "compileSdk = 36")
+          content = content.replace("compileSdkVersion 34", "compileSdkVersion 36")
           app_gradle.write_text(content)
 
           root_gradle = Path("android/build.gradle")
@@ -84,10 +86,24 @@ jobs:
           if not root_gradle.exists():
               raise SystemExit("Android root Gradle file (build.gradle or build.gradle.kts) not found")
 
-          lint_lines = [
+          extra_lines = [
               "",
-              "// Disable release lint tasks to avoid the webview plugin lint crash.",
+              "// Force subproject compileSdk to 36 and disable release lint tasks.",
               "subprojects {",
+              "    afterEvaluate {",
+              "        val ext = extensions.findByName(\"android\")",
+              "        if (ext != null) {",
+              "            try {",
+              "                val setCompileSdk = ext.javaClass.getMethod(\"setCompileSdk\", Int::class.javaPrimitiveType)",
+              "                setCompileSdk.invoke(ext, 36)",
+              "            } catch (_: Exception) {",
+              "                try {",
+              "                    val setCompileSdkVersion = ext.javaClass.getMethod(\"setCompileSdkVersion\", Int::class.javaPrimitiveType)",
+              "                    setCompileSdkVersion.invoke(ext, 36)",
+              "                } catch (_: Exception) {}",
+              "            }",
+              "        }",
+              "    }",
               "    tasks.configureEach {",
               '        if (name.startsWith("lintVital")) {',
               "            enabled = false",
@@ -98,11 +114,12 @@ jobs:
           ]
 
           root_content = root_gradle.read_text()
-          if "Disable release lint tasks" not in root_content:
-              root_gradle.write_text(root_content + "\n".join(lint_lines))
+          if "Force subproject compileSdk to 36" not in root_content:
+              root_gradle.write_text(root_content + "\n".join(extra_lines))
 
           print("Android SDK and lint configuration completed.")
           PY
+
 
       - name: Configure App Icon
         run: |
