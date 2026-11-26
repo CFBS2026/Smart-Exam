@@ -53,7 +53,9 @@ jobs:
 
           print("===== ROOT FILES =====")
           for item in sorted(root.iterdir(), key=lambda x: x.name):
-              print(f"{'[DIR] ' if item.is_dir() else '[FILE]'} {item.name} ({item.stat().st_size if item.is_file() else 0} bytes)")
+              size = item.stat().st_size if item.is_file() else 0
+              tag = "[DIR] " if item.is_dir() else "[FILE]"
+              print(f"{tag} {item.name} ({size} bytes)")
 
           print("===== CHECK REQUIRED FILES =====")
           required = ["pubspec.yaml", "index.html", "lib/main.dart"]
@@ -88,26 +90,38 @@ jobs:
           from pathlib import Path
           import re
 
+          def patch_compile_sdk(text: str, sdk: int = 37) -> str:
+              text = re.sub(r'\bcompileSdk\s*=\s*flutter\.compileSdkVersion\b', f'compileSdk = {sdk}', text)
+              text = re.sub(r'\bcompileSdkVersion\s+flutter\.compileSdkVersion\b', f'compileSdkVersion {sdk}', text)
+              text = re.sub(r'\bcompileSdk\s*=\s*3[0-6]\b', f'compileSdk = {sdk}', text)
+              text = re.sub(r'\bcompileSdkVersion\s+3[0-6]\b', f'compileSdkVersion {sdk}', text)
+              text = re.sub(r'\bcompileSdk\s*=\s*android-\d+', f'compileSdk = {sdk}', text)
+              return text
+
           app_gradle = Path("android/app/build.gradle")
           if not app_gradle.exists():
               app_gradle = Path("android/app/build.gradle.kts")
-
           if not app_gradle.exists():
               raise SystemExit("Android app Gradle file not found")
 
-          content = app_gradle.read_text()
-          content = re.sub(r'compileSdk\s*=\s*flutter\.compileSdkVersion', 'compileSdk = 37', content)
-          content = re.sub(r'compileSdkVersion\s+flutter\.compileSdkVersion', 'compileSdkVersion 37', content)
-          content = re.sub(r'compileSdk\s*=\s*3[46]', 'compileSdk = 37', content)
-          content = re.sub(r'compileSdkVersion\s+3[46]', 'compileSdkVersion 37', content)
-          app_gradle.write_text(content)
+          app_gradle.write_text(patch_compile_sdk(app_gradle.read_text(), 37))
+
+          patched_count = 0
+          for gradle_file in Path("android").rglob("build.gradle*"):
+              if "build/" in gradle_file.as_posix():
+                  continue
+              original = gradle_file.read_text()
+              updated = patch_compile_sdk(original, 37)
+              if updated != original:
+                  gradle_file.write_text(updated)
+                  patched_count += 1
+                  print("Patched compileSdk in:", gradle_file)
 
           root_gradle = Path("android/build.gradle")
           if not root_gradle.exists():
               root_gradle = Path("android/build.gradle.kts")
-
           if not root_gradle.exists():
-              raise SystemExit("Android root Gradle file (build.gradle or build.gradle.kts) not found")
+              raise SystemExit("Android root Gradle file not found")
 
           if root_gradle.suffix == ".kts":
               extra_lines = [
@@ -170,7 +184,7 @@ jobs:
           if "Force subproject compileSdk to 37" not in root_content:
               root_gradle.write_text(root_content + "\n".join(extra_lines))
 
-          print("Android compileSdk (37) and lint configured.")
+          print(f"Android compileSdk (37) and lint configured (patched {patched_count} gradle files).")
           PY
 
       - name: Configure Android Internet Permission
