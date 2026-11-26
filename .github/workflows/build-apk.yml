@@ -87,14 +87,17 @@ jobs:
       - name: Configure Android SDK and Lint
         run: |
           python3 - <<'PY'
-          from pathlib import Path
+          import os
           import re
+          from pathlib import Path
 
-          def patch_compile_sdk(text: str, sdk: int = 37) -> str:
+          TARGET_SDK = 37
+
+          def patch_sdk_text(text: str, sdk: int = TARGET_SDK) -> str:
               text = re.sub(r'\bcompileSdk\s*=\s*flutter\.compileSdkVersion\b', f'compileSdk = {sdk}', text)
               text = re.sub(r'\bcompileSdkVersion\s+flutter\.compileSdkVersion\b', f'compileSdkVersion {sdk}', text)
-              text = re.sub(r'\bcompileSdk\s*=\s*3[0-6]\b', f'compileSdk = {sdk}', text)
-              text = re.sub(r'\bcompileSdkVersion\s+3[0-6]\b', f'compileSdkVersion {sdk}', text)
+              text = re.sub(r'\bcompileSdk\s*=\s*\d+\b', f'compileSdk = {sdk}', text)
+              text = re.sub(r'\bcompileSdkVersion\s+\d+\b', f'compileSdkVersion {sdk}', text)
               text = re.sub(r'\bcompileSdk\s*=\s*android-\d+', f'compileSdk = {sdk}', text)
               return text
 
@@ -104,18 +107,33 @@ jobs:
           if not app_gradle.exists():
               raise SystemExit("Android app Gradle file not found")
 
-          app_gradle.write_text(patch_compile_sdk(app_gradle.read_text(), 37))
+          app_gradle.write_text(patch_sdk_text(app_gradle.read_text(), TARGET_SDK))
 
-          patched_count = 0
-          for gradle_file in Path("android").rglob("build.gradle*"):
-              if "build/" in gradle_file.as_posix():
-                  continue
-              original = gradle_file.read_text()
-              updated = patch_compile_sdk(original, 37)
-              if updated != original:
-                  gradle_file.write_text(updated)
-                  patched_count += 1
-                  print("Patched compileSdk in:", gradle_file)
+          # Patch pub-cache plugins (such as file_picker) and any local gradle files
+          pub_cache = Path(os.environ.get("PUB_CACHE", Path.home() / ".pub-cache"))
+          search_roots = [Path("android")]
+          if pub_cache.exists():
+              search_roots.append(pub_cache)
+
+          patched_files = []
+          for base in search_roots:
+              for gfile in base.rglob("build.gradle*"):
+                  g_posix = gfile.as_posix()
+                  if "/build/" in g_posix or g_posix.startswith("build/"):
+                      continue
+                  if base == pub_cache and "file_picker" not in g_posix:
+                      continue
+                  try:
+                      before = gfile.read_text(encoding="utf-8", errors="ignore")
+                  except Exception:
+                      continue
+                  after = patch_sdk_text(before, TARGET_SDK)
+                  if after != before:
+                      gfile.write_text(after, encoding="utf-8")
+                      patched_files.append(str(gfile))
+
+          for pf in patched_files:
+              print("Patched:", pf)
 
           root_gradle = Path("android/build.gradle")
           if not root_gradle.exists():
@@ -132,12 +150,12 @@ jobs:
                   '        val ext = sub.extensions.findByName("android")',
                   "        if (ext != null) {",
                   "            try {",
-                  '                val m = ext.javaClass.getMethod("setCompileSdk", Int::class.javaPrimitiveType)',
-                  "                m.invoke(ext, 37)",
+                  '                val prop = ext.javaClass.getMethod("setCompileSdk", Int::class.javaPrimitiveType)',
+                  "                prop.invoke(ext, 37)",
                   "            } catch (_: Exception) {",
                   "                try {",
-                  '                    val m2 = ext.javaClass.getMethod("setCompileSdkVersion", Int::class.javaPrimitiveType)',
-                  "                    m2.invoke(ext, 37)",
+                  '                    val prop2 = ext.javaClass.getMethod("setCompileSdkVersion", Int::class.javaPrimitiveType)',
+                  "                    prop2.invoke(ext, 37)",
                   "                } catch (_: Exception) {}",
                   "            }",
                   "        }",
@@ -180,30 +198,13 @@ jobs:
                   "",
               ]
 
-          root_content = root_gradle.read_text()
+          root_content = root_gradle.read_text(encoding="utf-8")
           if "Force subproject compileSdk to 37" not in root_content:
-              root_gradle.write_text(root_content + "\n".join(extra_lines))
+              root_gradle.write_text(root_content + "\n".join(extra_lines), encoding="utf-8")
 
-          print(f"Android compileSdk (37) and lint configured (patched {patched_count} gradle files).")
+          print(f"Android SDK ({TARGET_SDK}) and lint configured. Total patched: {len(patched_files)}")
           PY
 
-      - name: Configure Android Internet Permission
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-
-          manifest = Path("android/app/src/main/AndroidManifest.xml")
-          if manifest.exists():
-              content = manifest.read_text()
-              permission = '<uses-permission android:name="android.permission.INTERNET"/>'
-              if permission not in content:
-                  content = content.replace(
-                      "<application",
-                      permission + "\n    <application",
-                      1,
-                  )
-                  manifest.write_text(content)
-          PY
 
       - name: Configure App Icon
         run: |
