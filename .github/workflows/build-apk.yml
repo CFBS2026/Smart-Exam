@@ -114,6 +114,18 @@ jobs:
 
       - name: Configure App Icon
         run: |
+          PROJECT_DIR="."
+          if [ ! -f "pubspec.yaml" ]; then
+            PUBSPEC_PATH=$(find . -maxdepth 3 -name "pubspec.yaml" -not -path "*/.*" | head -n 1)
+            if [ -z "$PUBSPEC_PATH" ]; then
+              echo "ERROR: pubspec.yaml not found in repository."
+              exit 1
+            fi
+            PROJECT_DIR="$(dirname "$PUBSPEC_PATH")"
+          fi
+
+          cd "$PROJECT_DIR"
+          echo "Using Flutter project root: $(pwd)"
           flutter pub add --dev flutter_launcher_icons
 
           cat > flutter_launcher_icons.yaml <<'EOF'
@@ -148,15 +160,32 @@ jobs:
 
       - name: Get Flutter Dependencies
         run: |
+          PROJECT_DIR="."
+          if [ ! -f "pubspec.yaml" ]; then
+            PUBSPEC_PATH=$(find . -maxdepth 3 -name "pubspec.yaml" -not -path "*/.*" | head -n 1)
+            [ -n "$PUBSPEC_PATH" ] && PROJECT_DIR="$(dirname "$PUBSPEC_PATH")"
+          fi
+          cd "$PROJECT_DIR"
           flutter pub get
 
       - name: Build Release APK
         run: |
+          PROJECT_DIR="."
+          if [ ! -f "pubspec.yaml" ]; then
+            PUBSPEC_PATH=$(find . -maxdepth 3 -name "pubspec.yaml" -not -path "*/.*" | head -n 1)
+            [ -n "$PUBSPEC_PATH" ] && PROJECT_DIR="$(dirname "$PUBSPEC_PATH")"
+          fi
+          cd "$PROJECT_DIR"
           flutter build apk --release
 
       - name: Verify APK
         run: |
-          APK="build/app/outputs/flutter-apk/app-release.apk"
+          PROJECT_DIR="."
+          if [ ! -f "pubspec.yaml" ]; then
+            PUBSPEC_PATH=$(find . -maxdepth 3 -name "pubspec.yaml" -not -path "*/.*" | head -n 1)
+            [ -n "$PUBSPEC_PATH" ] && PROJECT_DIR="$(dirname "$PUBSPEC_PATH")"
+          fi
+          APK="$PROJECT_DIR/build/app/outputs/flutter-apk/app-release.apk"
           if [ ! -f "$APK" ]; then
             echo "ERROR: APK was not generated."
             exit 1
@@ -167,5 +196,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: CFBS-Smart-Exam-APK
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: "**/build/app/outputs/flutter-apk/app-release.apk"
           if-no-files-found: error
