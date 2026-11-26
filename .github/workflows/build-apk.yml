@@ -16,28 +16,37 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Download source code
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # 2. Install Java
-      - name: Setup Java 17
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      # 3. Install Flutter
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
 
-      # 4. Check project files
-      - name: Check Project Files
+      - name: Debug Repository Files
         run: |
-          echo "Checking project files..."
+          echo "===== CURRENT DIRECTORY ====="
+          pwd
+
+          echo "===== ROOT FILES ====="
+          ls -la
+
+          echo "===== SEARCH PROJECT FILES ====="
+          find . -maxdepth 5 -type f \( \
+            -name "pubspec.yaml" -o \
+            -name "index.html" -o \
+            -name "main.dart" \
+          \) -print
+
+          echo "===== CHECK REQUIRED FILES ====="
 
           test -f pubspec.yaml || {
             echo "ERROR: pubspec.yaml not found"
@@ -54,9 +63,8 @@ jobs:
             exit 1
           }
 
-          echo "Project files found."
+          echo "All project files found!"
 
-      # 5. Create Android project
       - name: Create Android Project
         run: |
           if [ ! -f android/app/build.gradle ] && [ ! -f android/app/build.gradle.kts ]; then
@@ -67,7 +75,6 @@ jobs:
               .
           fi
 
-      # 6. Configure Android SDK
       - name: Configure Android SDK
         run: |
           python3 - <<'PY'
@@ -111,24 +118,19 @@ jobs:
           app_gradle.write_text(content)
 
           print("Android compileSdk configured.")
-
           PY
 
-      # 7. Install dependencies
       - name: Get Flutter Dependencies
         run: flutter pub get
 
-      # 8. Check Flutter project
       - name: Flutter Analyze
         run: flutter analyze
         continue-on-error: true
 
-      # 9. Build APK
       - name: Build Release APK
         run: flutter build apk --release
 
-      # 10. Upload APK
-      - name: Upload APK Artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: CFBS-Smart-Examination-APK
