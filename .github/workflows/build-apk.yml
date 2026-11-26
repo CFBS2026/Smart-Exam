@@ -73,16 +73,8 @@ jobs:
               raise SystemExit("Android app Gradle file not found")
 
           content = app_gradle.read_text()
-
-          content = content.replace(
-              "compileSdk = flutter.compileSdkVersion",
-              "compileSdk = 36"
-          )
-          content = content.replace(
-              "compileSdkVersion flutter.compileSdkVersion",
-              "compileSdkVersion 36"
-          )
-
+          content = content.replace("compileSdk = flutter.compileSdkVersion", "compileSdk = 36")
+          content = content.replace("compileSdkVersion flutter.compileSdkVersion", "compileSdkVersion 36")
           app_gradle.write_text(content)
 
           root_gradle = Path("android/build.gradle")
@@ -105,7 +97,6 @@ jobs:
           """
 
           root_content = root_gradle.read_text()
-
           if "Disable release lint tasks" not in root_content:
               root_gradle.write_text(root_content + lint_config)
 
@@ -114,19 +105,24 @@ jobs:
 
       - name: Configure App Icon
         run: |
-          PROJECT_DIR="."
-          if [ ! -f "pubspec.yaml" ]; then
-            PUBSPEC_PATH=$(find . -maxdepth 3 -name "pubspec.yaml" -not -path "*/.*" | head -n 1)
-            if [ -n "$PUBSPEC_PATH" ]; then
-              PROJECT_DIR="$(dirname "$PUBSPEC_PATH")"
-            fi
-          fi
+          python3 - <<'PY'
+          import os
+          import subprocess
+          from pathlib import Path
 
-          cd "$PROJECT_DIR"
+          project_dir = Path(".")
+          if not (project_dir / "pubspec.yaml").exists():
+              for p in Path(".").rglob("pubspec.yaml"):
+                  if ".git" not in p.parts:
+                      project_dir = p.parent
+                      break
 
-          if [ ! -f "pubspec.yaml" ]; then
-            cat > pubspec.yaml <<'EOF'
-name: smart_exam
+          os.chdir(project_dir)
+          print("Using Flutter project root:", Path.cwd())
+
+          pubspec = Path("pubspec.yaml")
+          if not pubspec.exists():
+              pubspec.write_text("""name: smart_exam
 description: CFBS Smart Examination System
 publish_to: 'none'
 version: 1.0.0+1
@@ -151,21 +147,19 @@ flutter:
   uses-material-design: true
   assets:
     - index.html
-EOF
-          fi
+""")
 
-          echo "Using Flutter project root: $(pwd)"
-          flutter pub add --dev flutter_launcher_icons
+          subprocess.run(["flutter", "pub", "add", "--dev", "flutter_launcher_icons"], check=True)
 
-          cat > flutter_launcher_icons.yaml <<'EOF'
-          flutter_launcher_icons:
-            android: true
-            ios: false
-            image_path: "app_icon.png"
-            min_sdk_android: 21
-          EOF
+          Path("flutter_launcher_icons.yaml").write_text("""flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "app_icon.png"
+  min_sdk_android: 21
+""")
 
-          dart run flutter_launcher_icons
+          subprocess.run(["dart", "run", "flutter_launcher_icons"], check=True)
+          PY
 
       - name: Configure Android Internet Permission
         run: |
@@ -189,37 +183,54 @@ EOF
 
       - name: Get Flutter Dependencies
         run: |
-          PROJECT_DIR="."
-          if [ ! -f "pubspec.yaml" ]; then
-            PUBSPEC_PATH=$(find . -maxdepth 3 -name "pubspec.yaml" -not -path "*/.*" | head -n 1)
-            [ -n "$PUBSPEC_PATH" ] && PROJECT_DIR="$(dirname "$PUBSPEC_PATH")"
-          fi
-          cd "$PROJECT_DIR"
-          flutter pub get
+          python3 - <<'PY'
+          import os
+          import subprocess
+          from pathlib import Path
+
+          project_dir = Path(".")
+          if not (project_dir / "pubspec.yaml").exists():
+              for p in Path(".").rglob("pubspec.yaml"):
+                  if ".git" not in p.parts:
+                      project_dir = p.parent
+                      break
+
+          os.chdir(project_dir)
+          subprocess.run(["flutter", "pub", "get"], check=True)
+          PY
 
       - name: Build Release APK
         run: |
-          PROJECT_DIR="."
-          if [ ! -f "pubspec.yaml" ]; then
-            PUBSPEC_PATH=$(find . -maxdepth 3 -name "pubspec.yaml" -not -path "*/.*" | head -n 1)
-            [ -n "$PUBSPEC_PATH" ] && PROJECT_DIR="$(dirname "$PUBSPEC_PATH")"
-          fi
-          cd "$PROJECT_DIR"
-          flutter build apk --release
+          python3 - <<'PY'
+          import os
+          import subprocess
+          from pathlib import Path
+
+          project_dir = Path(".")
+          if not (project_dir / "pubspec.yaml").exists():
+              for p in Path(".").rglob("pubspec.yaml"):
+                  if ".git" not in p.parts:
+                      project_dir = p.parent
+                      break
+
+          os.chdir(project_dir)
+          subprocess.run(["flutter", "build", "apk", "--release"], check=True)
+          PY
 
       - name: Verify APK
         run: |
-          PROJECT_DIR="."
-          if [ ! -f "pubspec.yaml" ]; then
-            PUBSPEC_PATH=$(find . -maxdepth 3 -name "pubspec.yaml" -not -path "*/.*" | head -n 1)
-            [ -n "$PUBSPEC_PATH" ] && PROJECT_DIR="$(dirname "$PUBSPEC_PATH")"
-          fi
-          APK="$PROJECT_DIR/build/app/outputs/flutter-apk/app-release.apk"
-          if [ ! -f "$APK" ]; then
-            echo "ERROR: APK was not generated."
-            exit 1
-          fi
-          ls -lh "$APK"
+          python3 - <<'PY'
+          from pathlib import Path
+
+          matches = list(Path(".").rglob("app-release.apk"))
+          matches = [p for p in matches if "outputs/flutter-apk/app-release.apk" in p.as_posix()]
+
+          if not matches:
+              raise SystemExit("ERROR: APK was not generated.")
+
+          apk = matches[0]
+          print("APK FOUND:", apk, "Size:", apk.stat().st_size, "bytes")
+          PY
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
