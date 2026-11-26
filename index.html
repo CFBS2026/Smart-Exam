@@ -93,6 +93,31 @@ th{color:var(--gold)}
 .smallbtn{width:auto;padding:6px 9px;font-size:11px}
 .inline{display:flex;align-items:center;gap:8px}
 .inline input{width:auto}
+.combo-group{
+ display:flex;flex-wrap:wrap;gap:12px;
+ background:var(--navy);padding:10px;
+ border:1px solid var(--gold);border-radius:7px;margin-top:5px
+}
+.combo-group label{margin:0;cursor:pointer}
+.review-item{
+ padding:12px;border-radius:8px;margin:10px 0;
+ background:#112240;border-left:5px solid #526581
+}
+.review-item.correct{border-left-color:var(--green)}
+.review-item.wrong{border-left-color:var(--red)}
+.badge-ok{
+ display:inline-block;padding:2px 8px;border-radius:4px;
+ background:var(--green);color:#082b1e;font-size:11px;font-weight:bold
+}
+.badge-no{
+ display:inline-block;padding:2px 8px;border-radius:4px;
+ background:var(--red);color:white;font-size:11px;font-weight:bold
+}
+@media print{
+ button,.no-print{display:none!important}
+ body,.container,.box,.review-item{background:white!important;color:black!important}
+ th,td{border-color:#999!important;color:black!important}
+}
 @media(max-width:500px){
  .container{padding:9px}
  .grid{gap:6px}
@@ -215,6 +240,17 @@ function upper(g){
  return ['Grade 10','Grade 11','Grade 12'].includes(g);
 }
 
+function normalizeCombos(c){
+ if(Array.isArray(c))return c.filter(x=>COMBINATIONS[x]);
+ if(!c||c==='-')return [];
+ return String(c).split(',').map(s=>s.trim()).filter(x=>COMBINATIONS[x]);
+}
+
+function formatCombos(c){
+ const arr=normalizeCombos(c);
+ return arr.length?arr.join(', '):'-';
+}
+
 function subjects(g,combo){
  if(['KG','Grade 1','Grade 2','Grade 3','Grade 4','Grade 5'].includes(g))
  return LOWER;
@@ -222,7 +258,17 @@ function subjects(g,combo){
  if(['Grade 6','Grade 7','Grade 8','Grade 9'].includes(g))
  return MIDDLE;
 
- if(upper(g))return COMBINATIONS[combo]||[];
+ if(upper(g)){
+  const list=normalizeCombos(combo);
+  if(!list.length)return [];
+  const merged=[];
+  list.forEach(c=>{
+   (COMBINATIONS[c]||[]).forEach(s=>{
+    if(!merged.includes(s))merged.push(s);
+   });
+  });
+  return merged;
+ }
 
  return [];
 }
@@ -237,6 +283,25 @@ function comboOptions(selected='Combination 1'){
  return Object.keys(COMBINATIONS).map(c=>
  `<option value="${c}" ${c===selected?'selected':''}>${c}</option>`
  ).join('');
+}
+
+function comboCheckboxes(cls,selected=[],onChangeFn=''){
+ const sel=normalizeCombos(selected);
+ const defaultSel=sel.length?sel:['Combination 1'];
+ return `<div class="combo-group">
+ ${Object.keys(COMBINATIONS).map(c=>`
+  <label class="inline">
+   <input type="checkbox" class="${cls}" value="${c}"
+    ${defaultSel.includes(c)?'checked':''}
+    ${onChangeFn?`onchange="${onChangeFn}"`:''}>
+   ${c}
+  </label>
+ `).join('')}
+ </div>`;
+}
+
+function getCheckedCombos(cls){
+ return [...document.querySelectorAll('.'+cls+':checked')].map(x=>x.value);
 }
 
 function newId(){return id('CFBS')}
@@ -415,10 +480,8 @@ function showTeachers(){
  </select>
 
  <div id="tComboWrap" class="hidden">
- <label>ဘာသာတွဲ</label>
- <select id="tCombo" onchange="teacherSubjectOptions()">
- ${comboOptions()}
- </select>
+ <label>ဘာသာတွဲ (စိတ်ကြိုက်ရွေးချယ်နိုင်သည်)</label>
+ ${comboCheckboxes('tComboCheck',['Combination 1','Combination 2'],'teacherSubjectOptions()')}
  </div>
 
  <label>တာဝန်ဘာသာရပ်</label>
@@ -440,12 +503,14 @@ function showTeachers(){
 function teacherSubjectOptions(){
 
  const g=$('tGrade').value;
- const combo=$('tCombo').value;
+ const isUpper=upper(g);
 
- $('tComboWrap').classList.toggle('hidden',!upper(g));
+ $('tComboWrap').classList.toggle('hidden',!isUpper);
+
+ const combos=isUpper?getCheckedCombos('tComboCheck'):[];
 
  $('tSubject').innerHTML=
- subjects(g,combo).map(s=>
+ subjects(g,combos).map(s=>
  `<option>${esc(s)}</option>`
  ).join('');
 }
@@ -456,10 +521,13 @@ function createTeacher(){
  const user=$('tUser').value.trim();
  const pass=$('tPass').value;
  const grade=$('tGrade').value;
- const combo=upper(grade)?$('tCombo').value:'-';
+ const combos=upper(grade)?getCheckedCombos('tComboCheck'):[];
+ const combo=upper(grade)?combos:'-';
  const subject=$('tSubject').value;
 
  if(!name||!user||!pass)return alert('အချက်အလက်ဖြည့်ပါ။');
+ if(upper(grade)&&!combos.length)return alert('အနည်းဆုံး ဘာသာတွဲတစ်ခု ရွေးချယ်ပါ။');
+ if(!subject)return alert('တာဝန်ဘာသာရပ် ရွေးချယ်ပါ။');
 
  const users=read(KEY.users);
 
@@ -484,11 +552,12 @@ function drawTeachers(){
 
  $('teacherTable').innerHTML=`
  <div class="table-wrap"><table>
- <tr><th>စဉ်</th><th>အမည်</th><th>Username</th><th>အတန်း</th><th>ဘာသာ</th><th>Password</th><th></th></tr>
+ <tr><th>စဉ်</th><th>အမည်</th><th>Username</th><th>အတန်း</th><th>ဘာသာတွဲ</th><th>ဘာသာ</th><th>Password</th><th></th></tr>
  ${list.map((u,i)=>`
  <tr>
  <td>${i+1}</td><td>${esc(u.name)}</td>
  <td>${esc(u.user)}</td><td>${esc(u.grade)}</td>
+ <td>${esc(formatCombos(u.combo))}</td>
  <td>${esc(u.subject)}</td><td>${esc(u.pass)}</td>
  <td><button class="danger smallbtn" onclick="deleteUser('${u.id}')">ဖျက်</button></td>
  </tr>`).join('')}
@@ -623,6 +692,8 @@ function showQuestionBank(){
 
  if(currentUser.role!=='teacher')return;
 
+ const initCombos=normalizeCombos(currentUser.combo);
+
  $('dynamicView').innerHTML=`
  <div class="box">
  <h3>Question Bank</h3>
@@ -634,10 +705,8 @@ function showQuestionBank(){
  </select>
 
  <div id="qComboWrap" class="hidden">
- <label>ဘာသာတွဲ</label>
- <select id="qCombo" onchange="updateQSubjects()">
- ${comboOptions(currentUser.combo||'Combination 1')}
- </select>
+ <label>ဘာသာတွဲ (စိတ်ကြိုက်ရွေးချယ်နိုင်သည်)</label>
+ ${comboCheckboxes('qComboCheck',initCombos.length?initCombos:['Combination 1','Combination 2'],'updateQSubjects()')}
  </div>
 
  <label>ဘာသာရပ်</label>
@@ -698,13 +767,14 @@ function showQuestionBank(){
 function updateQSubjects(){
 
  const g=$('qGrade').value;
- const combo=$('qCombo')?.value||currentUser.combo||'Combination 1';
+ const isUpper=upper(g);
 
- $('qComboWrap').classList.toggle('hidden',!upper(g));
+ $('qComboWrap').classList.toggle('hidden',!isUpper);
 
- let list=subjects(g,combo);
+ const combos=isUpper?getCheckedCombos('qComboCheck'):[];
+ let list=subjects(g,combos);
 
- if(currentUser.grade&&currentUser.grade!=='အားလုံး')
+ if(currentUser.grade&&currentUser.grade!=='အားလုံး'&&currentUser.subject&&currentUser.subject!=='အားလုံး')
  list=list.filter(s=>s===currentUser.subject);
 
  $('qSubject').innerHTML=list.map(s=>
@@ -768,12 +838,16 @@ function saveQuestion(){
 
  const editId=$('editQId').value;
  const grade=$('qGrade').value;
- const combo=upper(grade)?$('qCombo').value:'-';
+ const combos=upper(grade)?getCheckedCombos('qComboCheck'):[];
+ const combo=upper(grade)?combos:'-';
  const subject=$('qSubject').value;
  const chapter=$('qChapter').value.trim();
  const text=$('qText').value.trim();
  const type=$('qType').value;
  const mark=Number($('qMark').value);
+
+ if(upper(grade)&&!combos.length)
+ return alert('အနည်းဆုံး ဘာသာတွဲတစ်ခု ရွေးချယ်ပါ။');
 
  if(!chapter||!text||!subject||!Number.isInteger(mark)||mark<=0)
  return alert('မေးခွန်းအချက်အလက် ပြည့်စုံစွာဖြည့်ပါ။');
@@ -832,8 +906,10 @@ function editQuestion(qid){
 
  $('editQId').value=q.id;
  $('qGrade').value=q.grade;
- updateQSubjects();
- if($('qCombo'))$('qCombo').value=q.combo||'Combination 1';
+ const qCombos=normalizeCombos(q.combo);
+ document.querySelectorAll('.qComboCheck').forEach(cb=>{
+  cb.checked=qCombos.includes(cb.value);
+ });
  updateQSubjects();
  $('qSubject').value=q.subject;
  $('qChapter').value=q.chapter;
@@ -914,7 +990,6 @@ async function importTeacherQuestionFile() {
         const raw = await file.text();
         const data = JSON.parse(raw);
 
-        // JSON ပုံစံအမျိုးမျိုးကို လက်ခံခြင်း
         const exam = data.exam || {};
         const questions =
             exam.questions ||
@@ -933,10 +1008,10 @@ async function importTeacherQuestionFile() {
                       'Grade 12';
 
         const combo = exam.combo ||
-                      data.combo || 'Combination 1';
+                      data.combo || currentUser.combo || ['Combination 1'];
 
         const subject = exam.subject ||
-                        data.subject || 'သင်္ချာ';
+                        data.subject || currentUser.subject || 'သင်္ချာ';
 
         const chapter = exam.chapter ||
                         data.chapter || title;
@@ -973,7 +1048,6 @@ async function importTeacherQuestionFile() {
             const importKey =
                 file.name + '|' + sourceId;
 
-            // ထပ်မံ Import လုပ်လျှင် မေးခွန်းထပ်မပွားစေရန်
             if (bank.some(x =>
                 x.owner === currentUser.user &&
                 x.importKey === importKey
@@ -1041,13 +1115,13 @@ async function importTeacherQuestionFile() {
     }
 }
 
-
-
 /* ================= TEACHER EXAM CREATION ================= */
 
 function showCreateExam(){
 
  if(currentUser.role!=='teacher')return;
+
+ const initCombos=normalizeCombos(currentUser.combo);
 
  $('dynamicView').innerHTML=`
  <div class="box">
@@ -1067,14 +1141,12 @@ function showCreateExam(){
  </select>
 
  <div id="eComboWrap" class="hidden">
- <label>ဘာသာတွဲ</label>
- <select id="eCombo" onchange="updateExamSubjects()">
- ${comboOptions(currentUser.combo||'Combination 1')}
- </select>
+ <label>ဘာသာတွဲ (စိတ်ကြိုက်ရွေးချယ်နိုင်သည်)</label>
+ ${comboCheckboxes('eComboCheck',initCombos.length?initCombos:['Combination 1','Combination 2'],'updateExamSubjects()')}
  </div>
 
  <label>ဘာသာရပ်</label>
- <select id="eSubject"></select>
+ <select id="eSubject" onchange="updateExamChapters()"></select>
 
  <label>စုစုပေါင်းအမှတ်</label>
  <input id="eTotal" type="number" min="1" value="50">
@@ -1097,13 +1169,14 @@ function showCreateExam(){
 function updateExamSubjects(){
 
  const g=$('eGrade').value;
- const combo=$('eCombo')?.value||currentUser.combo||'Combination 1';
+ const isUpper=upper(g);
 
- $('eComboWrap').classList.toggle('hidden',!upper(g));
+ $('eComboWrap').classList.toggle('hidden',!isUpper);
 
- let list=subjects(g,combo);
+ const combos=isUpper?getCheckedCombos('eComboCheck'):[];
+ let list=subjects(g,combos);
 
- if(currentUser.grade&&currentUser.grade!=='အားလုံး')
+ if(currentUser.grade&&currentUser.grade!=='အားလုံး'&&currentUser.subject&&currentUser.subject!=='အားလုံး')
  list=list.filter(s=>s===currentUser.subject);
 
  $('eSubject').innerHTML=list.map(s=>
@@ -1167,7 +1240,8 @@ function createExam(){
  const type=$('eType').value;
  const title=$('eTitle').value.trim();
  const grade=$('eGrade').value;
- const combo=upper(grade)?$('eCombo').value:'-';
+ const combos=upper(grade)?getCheckedCombos('eComboCheck'):[];
+ const combo=upper(grade)?combos:'-';
  const subject=$('eSubject').value;
  const total=Number($('eTotal').value);
  const minutes=Number($('eMinutes').value);
@@ -1177,6 +1251,9 @@ function createExam(){
  ...document.querySelectorAll('.chapterCheck:checked')
  ].map(x=>x.value);
 
+ if(upper(grade)&&!combos.length)
+ return alert('အနည်းဆုံး ဘာသာတွဲတစ်ခု ရွေးချယ်ပါ။');
+
  if(!title||!subject||!chapters.length||
  !Number.isInteger(total)||total<=0||
  !Number.isInteger(minutes)||minutes<=0||
@@ -1184,7 +1261,7 @@ function createExam(){
  return alert('အချက်အလက်များ ပြည့်စုံစွာဖြည့်ပါ။');
 
  const pool=read(KEY.questions).filter(q=>
- q.grade===grade&&q.combo===combo&&
+ q.grade===grade&&
  q.subject===subject&&chapters.includes(q.chapter)&&
  q.owner===currentUser.user
  );
@@ -1221,7 +1298,7 @@ function showExamList(){
  ${exams.map(e=>`
  <div class="box">
  <b>${esc(e.title)}</b>
- <p>${esc(e.grade)} / ${esc(e.subject)}</p>
+ <p>${esc(e.grade)} / ${esc(e.subject)}${upper(e.grade)?` (${esc(formatCombos(e.combo))})`:''}</p>
  <p>${e.total} မှတ် | ${e.minutes} မိနစ်</p>
  <button onclick="exportQuestionFile('${e.id}')">Question File Export</button>
  <button class="secondary" onclick="toggleExam('${e.id}')">${e.active?'ပိတ်ရန်':'ပြန်ဖွင့်ရန်'}</button>
@@ -1281,7 +1358,6 @@ function exportQuestionFile(eid){
 function downloadJSON(filename, data) {
     const content = JSON.stringify(data, null, 2);
 
-    // Android APK Export
     if (
         window.ExportChannel &&
         typeof window.ExportChannel.postMessage === 'function'
@@ -1295,7 +1371,6 @@ function downloadJSON(filename, data) {
         return;
     }
 
-    // Browser fallback
     const blob = new Blob(
         [content],
         { type: 'application/json;charset=utf-8' }
@@ -1354,6 +1429,16 @@ function studentDashboard(){
  drawMyResults();
 }
 
+function canStudentTakeExam(exam){
+ if(exam.grade!==currentUser.grade)return false;
+ if(!subjects(currentUser.grade,currentUser.combo).includes(exam.subject))return false;
+ if(upper(currentUser.grade)){
+  const allowedCombos=normalizeCombos(exam.combo);
+  if(allowedCombos.length&&!allowedCombos.includes(currentUser.combo))return false;
+ }
+ return true;
+}
+
 function importQuestionFile(){
 
  const file=$('packageFile').files[0];
@@ -1375,7 +1460,7 @@ function importQuestionFile(){
   if(!subjects(currentUser.grade,currentUser.combo).includes(exam.subject))
   return alert('ဤဘာသာရပ်သည် သင့်ဘာသာတွဲတွင် မပါဝင်ပါ။');
 
-  if(upper(currentUser.grade)&&exam.combo!==currentUser.combo)
+  if(!canStudentTakeExam(exam))
   return alert('ဘာသာတွဲမကိုက်ညီပါ။');
 
   const exams=read(KEY.exams);
@@ -1397,9 +1482,8 @@ function drawStudentExams(){
 
  const subject=$('studentSubject').value;
  const exams=read(KEY.exams).filter(e=>
- e.active&&e.grade===currentUser.grade&&
- (!subject||e.subject===subject)&&
- subjects(currentUser.grade,currentUser.combo).includes(e.subject)
+ e.active&&canStudentTakeExam(e)&&
+ (!subject||e.subject===subject)
  );
 
  const attempts=read(KEY.attempts);
@@ -1619,6 +1703,18 @@ function backToQuestion(qid){
 
 /* ================= SUBMIT AND RESULT ================= */
 
+function formatChoiceDisplay(q,val){
+ const v=String(val||'').trim();
+ if(!v)return 'မဖြေခဲ့ပါ';
+ if(q.type==='mcq'&&Array.isArray(q.options)){
+  const idx='ABCD'.indexOf(v.toUpperCase());
+  if(idx>-1&&q.options[idx]!==undefined){
+   return `${'ABCD'[idx]}. ${q.options[idx]}`;
+  }
+ }
+ return v;
+}
+
 function submitExam(auto){
 
  if(!activeExam)return;
@@ -1634,23 +1730,40 @@ function submitExam(auto){
 
  let score=0;
  let manualPending=0;
+ const review=[];
 
  questions.forEach(q=>{
 
   if(q.type==='essay'){
    manualPending+=Number(q.mark);
+   review.push({
+    text:q.text,
+    type:q.type,
+    mark:Number(q.mark),
+    givenDisplay:String(activeExam.answers[q.id]||'').trim()||'မဖြေခဲ့ပါ',
+    correctDisplay:'ဆရာစစ်ဆေးရန်',
+    isCorrect:null
+   });
    return;
   }
 
-  const given=String(activeExam.answers[q.id]||'')
-  .trim().toLowerCase();
+  const rawGiven=activeExam.answers[q.id]||'';
+  const given=String(rawGiven).trim().toLowerCase();
+  const correct=String(q.answer||'').trim().toLowerCase();
+  const isCorrect=Boolean(given&&given===correct);
 
-  const correct=String(q.answer||'')
-  .trim().toLowerCase();
-
-  if(given&&given===correct){
+  if(isCorrect){
    score+=Number(q.mark);
   }
+
+  review.push({
+   text:q.text,
+   type:q.type,
+   mark:Number(q.mark),
+   givenDisplay:formatChoiceDisplay(q,rawGiven),
+   correctDisplay:formatChoiceDisplay(q,q.answer),
+   isCorrect
+  });
 
  });
 
@@ -1674,6 +1787,7 @@ function submitExam(auto){
   roll:currentUser.roll,
   gradeName:currentUser.grade,
   combo:currentUser.combo,
+  examId:exam.id,
   title:exam.title,
   examType:exam.type,
   subject:exam.subject,
@@ -1684,7 +1798,8 @@ function submitExam(auto){
   total:exam.total,
   percent:Math.round(percent*100)/100,
   grade,
-  manualPending: manualPending > 0
+  manualPending: manualPending > 0,
+  review
  };
 
  save(KEY.results,[...read(KEY.results),result]);
@@ -1709,7 +1824,48 @@ function submitExam(auto){
  showResult(result);
 }
 
+function getReviewItemsForResult(r){
+ if(Array.isArray(r.review)&&r.review.length)return r.review;
+
+ const attempt=read(KEY.attempts).find(a=>
+  a.examId===r.examId&&a.student===r.username
+ );
+ if(!attempt||!Array.isArray(attempt.questions))return [];
+
+ return attempt.questions.map(q=>{
+  const rawGiven=(attempt.answers&&attempt.answers[q.id])||'';
+  const given=String(rawGiven).trim().toLowerCase();
+  const correct=String(q.answer||'').trim().toLowerCase();
+  const isCorrect=q.type==='essay'?null:Boolean(given&&given===correct);
+  return {
+   text:q.text,
+   type:q.type,
+   mark:Number(q.mark),
+   givenDisplay:formatChoiceDisplay(q,rawGiven),
+   correctDisplay:q.type==='essay'?'ဆရာစစ်ဆေးရန်':formatChoiceDisplay(q,q.answer),
+   isCorrect
+  };
+ });
+}
+
+function toggleAnswerReview(){
+ const wrap=$('answerReviewWrap');
+ if(!wrap)return;
+ const isHidden=wrap.classList.toggle('hidden');
+ const btn=$('toggleReviewBtn');
+ if(btn){
+  btn.textContent=isHidden
+   ?'မေးခွန်းအလိုက် အမှား/အမှန် ပြန်စစ်ရန်'
+   :'အဖြေစစ်ဆေးချက် ပိတ်ရန်';
+ }
+ if(!isHidden){
+  wrap.scrollIntoView({behavior:'smooth'});
+ }
+}
+
 function showResult(r){
+
+ const reviewItems=getReviewItemsForResult(r);
 
  $('roleContent').innerHTML=`
  <div class="box" id="printArea">
@@ -1746,6 +1902,33 @@ function showResult(r){
  <p>Principal Signature: __________________</p>
 
  </div>
+
+ ${reviewItems.length?`
+ <button class="green no-print" id="toggleReviewBtn" onclick="toggleAnswerReview()">
+ မေးခွန်းအလိုက် အမှား/အမှန် ပြန်စစ်ရန်
+ </button>
+ <div id="answerReviewWrap" class="box hidden">
+ <h3>မေးခွန်းအလိုက် အဖြေစစ်ဆေးချက်</h3>
+ <p class="muted">စုစုပေါင်း မေးခွန်း ${reviewItems.length} ပုဒ်</p>
+ ${reviewItems.map((item,i)=>`
+  <div class="review-item ${item.isCorrect===true?'correct':(item.isCorrect===false?'wrong':'')}">
+   <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+    <b>မေးခွန်း ${i+1} (${item.mark} မှတ်)</b>
+    ${item.isCorrect===true
+     ?'<span class="badge-ok">မှန်ပါသည်</span>'
+     :(item.isCorrect===false
+      ?'<span class="badge-no">မှားနေပါသည်</span>'
+      :'<span class="muted">Pending</span>')}
+   </div>
+   <p>${esc(item.text)}</p>
+   <p><b>သင်ဖြေခဲ့သောအဖြေ:</b> ${esc(item.givenDisplay)}</p>
+   ${item.isCorrect===false?`
+    <p style="color:var(--green)"><b>အဖြေမှန်:</b> ${esc(item.correctDisplay)}</p>
+   `:''}
+  </div>
+ `).join('')}
+ </div>
+ `:''}
 
  <button onclick="window.print()">ရလဒ် Print ထုတ်ရန်</button>
  <button class="secondary" onclick="dashboard()">ပင်မစာမျက်နှာ</button>
@@ -1968,7 +2151,7 @@ function drawTeacherResults(){
  `).join('')||
 
  `<tr>
- <td colspan="5" style="text-align:center">
+ <td colspan="6" style="text-align:center">
  ရလဒ်မရှိသေးပါ။
  </td>
  </tr>`
