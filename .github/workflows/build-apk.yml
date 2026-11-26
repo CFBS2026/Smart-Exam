@@ -1,4 +1,4 @@
-Name: Build CFBS Smart Exam APK
+name: Build CFBS Smart Exam APK
 
 on:
   workflow_dispatch:
