@@ -82,7 +82,7 @@ th{color:var(--gold)}
  border-radius:7px;margin:7px 0
 }
 .option input{width:auto;margin:0}
-.option label{margin:0}
+.option label{margin:0;line-height:1.7}
 .timer{
  background:var(--gold);color:var(--navy);
  font-size:22px;font-weight:bold;
@@ -90,6 +90,7 @@ th{color:var(--gold)}
  border-radius:8px;position:sticky;top:0
 }
 .question{padding:13px;background:#25466F;margin:12px 0;border-radius:8px}
+.question p{line-height:1.85}
 .smallbtn{width:auto;padding:6px 9px;font-size:11px}
 .inline{display:flex;align-items:center;gap:8px}
 .inline input{width:auto}
@@ -113,6 +114,32 @@ th{color:var(--gold)}
  display:inline-block;padding:2px 8px;border-radius:4px;
  background:var(--red);color:white;font-size:11px;font-weight:bold
 }
+
+/* Textbook-style Superscript & Stacked Fraction */
+.math-sup{
+ font-size:0.72em;
+ vertical-align:super;
+ line-height:0;
+}
+.math-frac{
+ display:inline-flex;
+ flex-direction:column;
+ align-items:center;
+ vertical-align:middle;
+ line-height:1.05;
+ font-size:0.78em;
+ margin:0 2px;
+}
+.math-frac .num{
+ padding:0 3px 1.5px 3px;
+ border-bottom:1.15px solid currentColor;
+ white-space:nowrap;
+}
+.math-frac .den{
+ padding:1.5px 3px 0 3px;
+ white-space:nowrap;
+}
+
 @media print{
  button,.no-print{display:none!important}
  body,.container,.box,.review-item{background:white!important;color:black!important}
@@ -234,6 +261,89 @@ function esc(v){
  '&':'&amp;','<':'&lt;','>':'&gt;',
  '"':'&quot;',"'":'&#39;'
  })[c]);
+}
+
+/* Math Formatter: Superscript (^) & Stacked Fraction (/) */
+function formatMathText(rawText){
+ if(rawText===null||rawText===undefined)return '';
+ let s=String(rawText);
+
+ const tokens=[];
+ function stash(html){
+  const key='@@MATHTOKEN'+tokens.length+'@@';
+  tokens.push(html);
+  return key;
+ }
+
+ function makeFrac(numStr, denStr){
+  return stash(
+   `<span class="math-frac"><span class="num">${formatInner(numStr)}</span><span class="den">${formatInner(denStr)}</span></span>`
+  );
+ }
+
+ function formatInner(inner){
+  let t=esc(inner);
+
+  // Superscripts inside numerator/denominator too
+  t=t.replace(
+   /(\([^()]+\)|[A-Za-z0-9πθ√]+)\^\(([^()]+)\)/g,
+   (_,base,exp)=>`${base}<span class="math-sup">${esc(exp)}</span>`
+  );
+  t=t.replace(
+   /(\([^()]+\)|[A-Za-z0-9πθ√]+)\^([+-]?(?:\d*[A-Za-zπθ]+|\d+))/g,
+   (_,base,exp)=>`${base}<span class="math-sup">${esc(exp)}</span>`
+  );
+
+  // Nested simple fraction inside inner expression
+  t=t.replace(
+   /(^|[^A-Za-z0-9)\]=/])([+-]?(?:√?\d+|π))\s*\/\s*(√?\d+|π)(?![A-Za-z0-9(\[])/g,
+   (_,pre,n,d)=>pre+makeFrac(n,d)
+  );
+
+  return t;
+ }
+
+ // 1. Parenthesized expressions over parenthesized expressions: ((a + b)(c + d)) / (e + f) or (a + b) / (c + d)
+ s=s.replace(
+  /(\((?:\([^()]+\)|[^()]+)+\))\s*\/\s*(\((?:\([^()]+\)|[^()]+)+\))/g,
+  (_,num,den)=>makeFrac(num,den)
+ );
+
+ // 2. Parenthesized numerator over simple term/number/π/root: (1 + √17)/4 or (z - z̄) / 2i
+ s=s.replace(
+  /(\([^()]+\))\s*\/\s*([+-]?(?:\d*[A-Za-zπθ]+|\d*√\d+|\d+))/g,
+  (_,num,den)=>makeFrac(num,den)
+ );
+
+ // 3. Simple number/root/π over parenthesized expression: 1 / (1 - i)
+ s=s.replace(
+  /(^|[^A-Za-z0-9)\]=/])([+-]?(?:√?\d+|π))\s*\/\s*(\([^()]+\))/g,
+  (_,pre,num,den)=>pre+makeFrac(num,den)
+ );
+
+ // 4. Standard simple fractions: 1/2, -2/5, π/4, √2/2
+ s=s.replace(
+  /(^|[^A-Za-z0-9)\]=/])([+-]?(?:√?\d+|π))\s*\/\s*(√?\d+|π)(?![A-Za-z0-9(\[])/g,
+  (_,pre,num,den)=>pre+makeFrac(num,den)
+ );
+
+ // Escape remaining plain text safely
+ s=esc(s);
+
+ // 5. Superscripts: (1 + i)^(4n-3), (1 + i)^6n, x^2, i^-1
+ s=s.replace(
+  /(\([^()]+\)|[A-Za-z0-9πθ√]+)\^\(([^()]+)\)/g,
+  (_,base,exp)=>`${base}<span class="math-sup">${exp}</span>`
+ );
+ s=s.replace(
+  /(\([^()]+\)|[A-Za-z0-9πθ√]+)\^([+-]?(?:\d*[A-Za-zπθ]+|\d+))/g,
+  (_,base,exp)=>`${base}<span class="math-sup">${exp}</span>`
+ );
+
+ // Restore stashed fraction tokens
+ s=s.replace(/@@MATHTOKEN(\d+)@@/g,(_,idx)=>tokens[Number(idx)]||'');
+
+ return s;
 }
 
 function upper(g){
@@ -948,7 +1058,7 @@ function drawQuestions(){
  $('questionList').innerHTML=list.map((q,i)=>`
  <div class="box">
  <b>${i+1}. ${esc(q.grade)} / ${esc(q.subject)}</b>
- <p>${esc(q.text)}</p>
+ <p>${formatMathText(q.text)}</p>
  <p class="muted">${esc(q.chapter)} | ${q.mark} မှတ်</p>
  <button class="secondary smallbtn" onclick="editQuestion('${q.id}')">ပြင်ရန်</button>
  <button class="danger smallbtn" onclick="deleteQuestion('${q.id}')">ဖျက်ရန်</button>
@@ -1602,7 +1712,7 @@ function renderQuiz(){
    <input type="radio" name="ans${i}" value="${'ABCD'[j]}"
    ${val==='ABCD'[j]?'checked':''}
    onchange="setAnswer('${q.id}',this.value)">
-   <label>${'ABCD'[j]}. ${esc(op)}</label>
+   <label>${'ABCD'[j]}. ${formatMathText(op)}</label>
    </div>`).join('');
 
   }else if(q.type==='tf'){
@@ -1612,7 +1722,7 @@ function renderQuiz(){
    <input type="radio" name="ans${i}" value="${op}"
    ${val===op?'checked':''}
    onchange="setAnswer('${q.id}',this.value)">
-   <label>${op}</label>
+   <label>${esc(op)}</label>
    </div>`).join('');
 
   }else{
@@ -1627,7 +1737,7 @@ function renderQuiz(){
   return `
   <div class="question" id="q_${q.id}">
   <b>မေးခွန်း ${i+1} (${q.mark} မှတ်)</b>
-  <p>${esc(q.text)}</p>
+  <p>${formatMathText(q.text)}</p>
   ${controls}
   </div>`;
 
@@ -1920,10 +2030,10 @@ function showResult(r){
       ?'<span class="badge-no">မှားနေပါသည်</span>'
       :'<span class="muted">Pending</span>')}
    </div>
-   <p>${esc(item.text)}</p>
-   <p><b>သင်ဖြေခဲ့သောအဖြေ:</b> ${esc(item.givenDisplay)}</p>
+   <p>${formatMathText(item.text)}</p>
+   <p><b>သင်ဖြေခဲ့သောအဖြေ:</b> ${formatMathText(item.givenDisplay)}</p>
    ${item.isCorrect===false?`
-    <p style="color:var(--green)"><b>အဖြေမှန်:</b> ${esc(item.correctDisplay)}</p>
+    <p style="color:var(--green)"><b>အဖြေမှန်:</b> ${formatMathText(item.correctDisplay)}</p>
    `:''}
   </div>
  `).join('')}
